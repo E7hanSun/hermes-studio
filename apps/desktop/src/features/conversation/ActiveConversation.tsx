@@ -1,64 +1,35 @@
 import { Copy, FileText, Terminal, Timer, Zap } from "lucide-react";
 import type { Profile, Space } from "@hermes-studio/bridge";
 import { Composer, type ComposerProps } from "@/components/composer/Composer";
+import type { ConversationItem, ConversationState } from "./conversation-state";
 
 type ActiveConversationProps = {
   composer: ComposerProps;
+  conversation: ConversationState;
   profiles: Profile[];
   spaces: Space[];
-  onBackHome: () => void;
 };
 
-export function ActiveConversation({ composer, profiles, spaces }: ActiveConversationProps) {
+export function ActiveConversation({ composer, conversation, profiles, spaces }: ActiveConversationProps) {
   return (
     <div className="active-view">
       <div className="active-title-row">
-        <span>Design Hermes Studio Desktop</span>
+        <span>{conversation.title}</span>
         <small>hermes-agent</small>
       </div>
 
       <div className="conversation-stream">
-        <div className="user-message-wrap">
-          <div className="user-message">
-            Codex could not read the local image at `/var/folders/.../image.png`.
-            I tried to read image metadata first, then inspect the active Pencil UI instead.
-          </div>
-          <div className="message-meta">
-            <span>10:42</span>
-            <Copy size={12} />
-          </div>
-        </div>
-
-        <section className="assistant-run">
-          <div className="run-label">
-            <Timer size={13} />
-            <span>Thinking</span>
-          </div>
-          <p>Executing disk space check</p>
-          <p className="muted-line">I need to inspect the current workspace and verify what is already present.</p>
-        </section>
-
-        <section className="tool-block">
-          <div className="tool-header">
-            <div>
-              <Terminal size={13} />
-              <span>terminal</span>
+        {conversation.items.length === 0 ? (
+          <section className="assistant-run">
+            <div className="run-label">
+              <Timer size={13} />
+              <span>Waiting</span>
             </div>
-            <small>running...</small>
-          </div>
-          <code>command -v pnpm</code>
-          <pre>{`/Users/ember/Library/pnpm/pnpm
-v10.30.3`}</pre>
-        </section>
-
-        <section className="assistant-run">
-          <div className="run-label">
-            <Zap size={13} />
-            <span>Thinking</span>
-          </div>
-          <p>Reading the Electron scaffold plan</p>
-          <p className="streaming-line">Creating the shell, sidebar, composer, and mock runtime states<span /></p>
-        </section>
+            <p>Send a message to start the mock Hermes runtime event stream.</p>
+          </section>
+        ) : (
+          conversation.items.map((item) => <ConversationItemView item={item} key={item.id} />)
+        )}
 
         <section className="context-strip">
           <FileText size={13} />
@@ -72,4 +43,69 @@ v10.30.3`}</pre>
       </div>
     </div>
   );
+}
+
+function ConversationItemView({ item }: { item: ConversationItem }) {
+  if (item.kind === "user") {
+    return (
+      <div className="user-message-wrap">
+        <div className="user-message">{item.text}</div>
+        <div className="message-meta">
+          <span>{formatTime(item.createdAt)}</span>
+          <Copy size={12} />
+        </div>
+      </div>
+    );
+  }
+
+  if (item.kind === "thinking") {
+    return (
+      <section className="assistant-run">
+        <div className="run-label">
+          <Timer size={13} />
+          <span>{item.title}</span>
+        </div>
+        <p className={item.status === "running" ? "streaming-line" : undefined}>
+          {item.text || "Preparing the next step"}
+          {item.status === "running" ? <span /> : null}
+        </p>
+      </section>
+    );
+  }
+
+  if (item.kind === "tool") {
+    return (
+      <section className="tool-block">
+        <div className="tool-header">
+          <div>
+            <Terminal size={13} />
+            <span>{item.tool.title}</span>
+          </div>
+          <small>{item.tool.status === "running" ? "running..." : item.tool.status}</small>
+        </div>
+        {item.tool.command ? <code>{item.tool.command}</code> : null}
+        {item.tool.output?.length ? <pre>{item.tool.output.join("\n")}</pre> : null}
+      </section>
+    );
+  }
+
+  return (
+    <section className="assistant-run">
+      <div className="run-label">
+        <Zap size={13} />
+        <span>Hermes</span>
+      </div>
+      <p className={item.status === "streaming" ? "streaming-line" : undefined}>
+        {item.text}
+        {item.status === "streaming" ? <span /> : null}
+      </p>
+    </section>
+  );
+}
+
+function formatTime(value: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
 }

@@ -12,7 +12,7 @@ export function createAppWindow(): BrowserWindow {
     trafficLightPosition: { x: 12, y: 17 },
     backgroundColor: "#f8f7f4",
     webPreferences: {
-      preload: join(__dirname, "../preload/index.js"),
+      preload: join(__dirname, "../preload/index.mjs"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false

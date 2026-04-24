@@ -54,8 +54,11 @@ export type ToolCall = {
 };
 
 export type ConversationEvent =
-  | { type: "conversation.started"; conversationId: string; title: string }
+  | { type: "conversation.started"; conversationId: string; title: string; input: string; createdAt: string }
+  | { type: "thinking.started"; conversationId: string; title: string }
+  | { type: "thinking.updated"; conversationId: string; text: string }
   | { type: "message.delta"; conversationId: string; text: string }
+  | { type: "message.completed"; conversationId: string }
   | { type: "tool.started"; conversationId: string; tool: ToolCall }
   | { type: "tool.output"; conversationId: string; toolCallId: string; output: string }
   | { type: "tool.finished"; conversationId: string; toolCallId: string; exitCode: number }

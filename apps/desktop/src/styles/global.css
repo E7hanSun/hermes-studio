@@ -65,30 +65,6 @@ button {
   -webkit-app-region: drag;
 }
 
-.traffic-lights {
-  display: flex;
-  gap: 6px;
-  padding-left: 12px;
-}
-
-.traffic-light {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-}
-
-.traffic-light-red {
-  background: #ff5f57;
-}
-
-.traffic-light-yellow {
-  background: #febc2e;
-}
-
-.traffic-light-green {
-  background: #28c840;
-}
-
 .app-body {
   display: flex;
   min-height: 0;
@@ -555,6 +531,37 @@ button {
   width: min(800px, 100%);
   justify-content: center;
   margin: 0 auto;
+}
+
+.placeholder-page {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  padding: 14px 48px 48px;
+}
+
+.placeholder-page section {
+  display: flex;
+  width: min(680px, 100%);
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.placeholder-page h1 {
+  margin: 0 0 10px;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.placeholder-page p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
 }
 
 @keyframes blink {
