@@ -6,6 +6,13 @@
 *.swp
 *.swo
 
+# Local assistant/tool state
+AGENTS.md
+.claude/
+.codex/
+.cursor/
+.continue/
+
 # Dependencies and build output
 node_modules/
 .pnpm-store/
