@@ -34,3 +34,18 @@ hermes-version.lock     Upstream source lock
 The vendor tree should be considered generated. Prefer changing Hermes through
 patch files in `patches/hermes-agent` so upgrades stay reviewable.
 
+## Desktop Development
+
+Hermes Studio uses Electron, React, TypeScript, and Vite.
+
+```bash
+pnpm install
+pnpm dev
+```
+
+Useful checks:
+
+```bash
+pnpm typecheck
+pnpm --filter @hermes-studio/desktop build
+```

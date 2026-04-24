@@ -1,0 +1,31 @@
+{
+  "name": "@hermes-studio/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hermes Studio desktop app.",
+  "type": "module",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hermes-studio/bridge": "workspace:*",
+    "@hermes-studio/design-system": "workspace:*",
+    "@vitejs/plugin-react": "^5.1.0",
+    "electron-vite": "^4.0.0",
+    "lucide-react": "^0.554.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "electron": "^39.2.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.2"
+  }
+}
