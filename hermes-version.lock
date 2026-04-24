@@ -1,4 +1,3 @@
 repo=https://github.com/NousResearch/hermes-agent.git
-ref=main
-commit=
-
+ref=v2026.4.23
+commit=bf196a3fc0fd1f79353369e8732051db275c6276
