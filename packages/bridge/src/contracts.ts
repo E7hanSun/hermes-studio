@@ -31,7 +31,7 @@ export type ConversationSummary = {
 
 export type RuntimeStatus =
   | { state: "missing"; message: string }
-  | { state: "idle" }
+  | { state: "idle"; vendorPath?: string }
   | { state: "starting" }
   | { state: "running"; pid: number }
   | { state: "error"; message: string };

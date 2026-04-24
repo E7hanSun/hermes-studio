@@ -3,6 +3,7 @@ import { channels, type ConversationEvent, type MessageInput } from "@hermes-stu
 import { createAppWindow } from "./app-window";
 import { readHermesLock } from "./hermes-lock";
 import { profiles, settings, spaces } from "./mock-data";
+import { getRuntimeStatus } from "./runtime-status";
 
 let currentProfileId = "coder";
 let currentSpaceId = "home";
@@ -74,7 +75,7 @@ function registerIpcHandlers(): void {
     hermesVersion: readHermesLock()
   }));
 
-  ipcMain.handle(channels.runtimeGetStatus, () => ({ state: "idle" }));
+  ipcMain.handle(channels.runtimeGetStatus, () => getRuntimeStatus());
 
   ipcMain.handle(channels.runtimeSendMessage, (event, input: MessageInput) => {
     const conversationId = input.conversationId ?? `mock-conversation-${++conversationCounter}`;

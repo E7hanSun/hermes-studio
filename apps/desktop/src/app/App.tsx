@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AppInfo, Profile, Space } from "@hermes-studio/bridge";
+import type { AppInfo, Profile, RuntimeStatus, Settings, Space } from "@hermes-studio/bridge";
 import { AppShell } from "@/components/shell/AppShell";
 import { ActiveConversation } from "@/features/conversation/ActiveConversation";
 import type { ComposerProps } from "@/components/composer/Composer";
 import { emptyConversation, reduceConversationEvent, type ConversationState } from "@/features/conversation/conversation-state";
 import { ConversationHome } from "@/features/conversation/ConversationHome";
+import { ProfilesPage } from "@/features/workbench/ProfilesPage";
+import { SettingsPage } from "@/features/workbench/SettingsPage";
+import { SpacesPage } from "@/features/workbench/SpacesPage";
 import { mockConversations } from "@/mocks/conversations";
 
 export type ViewMode = "home" | "active" | "memory" | "skills" | "scheduled-jobs" | "spaces" | "profiles" | "settings";
@@ -18,6 +21,8 @@ export function App() {
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
   const [currentSpace, setCurrentSpace] = useState<Space | null>(null);
+  const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus | null>(null);
+  const [settings, setSettings] = useState<Settings | null>(null);
 
   useEffect(() => {
     async function loadInitialData(): Promise<void> {
@@ -25,12 +30,14 @@ export function App() {
         return;
       }
 
-      const [info, profileList, spaceList, profile, space] = await Promise.all([
+      const [info, profileList, spaceList, profile, space, runtime, loadedSettings] = await Promise.all([
         window.hermesStudio.app.getInfo(),
         window.hermesStudio.profiles.list(),
         window.hermesStudio.spaces.list(),
         window.hermesStudio.profiles.getCurrent(),
-        window.hermesStudio.spaces.getCurrent()
+        window.hermesStudio.spaces.getCurrent(),
+        window.hermesStudio.runtime.getStatus(),
+        window.hermesStudio.settings.get()
       ]);
 
       setAppInfo(info);
@@ -38,6 +45,8 @@ export function App() {
       setSpaces(spaceList);
       setCurrentProfile(profile);
       setCurrentSpace(space);
+      setRuntimeStatus(runtime);
+      setSettings(loadedSettings);
     }
 
     void loadInitialData();
@@ -99,21 +108,78 @@ export function App() {
           onUseSuggestion={setDraft}
         />
       ) : (
-        renderActiveView(viewMode, composerProps, conversation, profiles, spaces)
+        renderActiveView({
+          viewMode,
+          composer: composerProps,
+          conversation,
+          profiles,
+          spaces,
+          currentProfile,
+          currentSpace,
+          appInfo,
+          runtimeStatus,
+          settings,
+          onSelectProfile: async (profileId) => {
+            if (!window.hermesStudio) {
+              return;
+            }
+            setCurrentProfile(await window.hermesStudio.profiles.setCurrent(profileId));
+          },
+          onSelectSpace: async (spaceId) => {
+            if (!window.hermesStudio) {
+              return;
+            }
+            setCurrentSpace(await window.hermesStudio.spaces.setCurrent(spaceId));
+          }
+        })
       )}
     </AppShell>
   );
 }
 
-function renderActiveView(
-  viewMode: ViewMode,
-  composer: ComposerProps,
-  conversation: ConversationState,
-  profiles: Profile[],
-  spaces: Space[]
-) {
+type ActiveViewProps = {
+  viewMode: ViewMode;
+  composer: ComposerProps;
+  conversation: ConversationState;
+  profiles: Profile[];
+  spaces: Space[];
+  currentProfile: Profile | null;
+  currentSpace: Space | null;
+  appInfo: AppInfo | null;
+  runtimeStatus: RuntimeStatus | null;
+  settings: Settings | null;
+  onSelectProfile: (profileId: string) => void;
+  onSelectSpace: (spaceId: string) => void;
+};
+
+function renderActiveView({
+  viewMode,
+  composer,
+  conversation,
+  profiles,
+  spaces,
+  currentProfile,
+  currentSpace,
+  appInfo,
+  runtimeStatus,
+  settings,
+  onSelectProfile,
+  onSelectSpace
+}: ActiveViewProps) {
   if (viewMode === "active") {
     return <ActiveConversation composer={composer} conversation={conversation} profiles={profiles} spaces={spaces} />;
+  }
+
+  if (viewMode === "profiles") {
+    return <ProfilesPage profiles={profiles} currentProfile={currentProfile} onSelectProfile={onSelectProfile} />;
+  }
+
+  if (viewMode === "spaces") {
+    return <SpacesPage spaces={spaces} currentSpace={currentSpace} onSelectSpace={onSelectSpace} />;
+  }
+
+  if (viewMode === "settings") {
+    return <SettingsPage appInfo={appInfo} runtimeStatus={runtimeStatus} settings={settings} />;
   }
 
   return <PlaceholderPage viewMode={viewMode as Exclude<ViewMode, "home" | "active">} />;
