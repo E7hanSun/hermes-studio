@@ -1,0 +1,29 @@
+.DS_Store
+
+# Editors and local IDE state
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Dependencies and build output
+node_modules/
+dist/
+build/
+.turbo/
+.vite/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Vendored runtime
+vendor/hermes-agent/
