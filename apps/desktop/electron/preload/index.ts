@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import { channels, type ConversationEvent, type HermesStudioApi, type MessageInput, type Settings } from "@hermes-studio/bridge";
+import { channels, type AddSpaceInput, type ConversationEvent, type HermesStudioApi, type MessageInput, type Settings } from "@hermes-studio/bridge";
 
 const api: HermesStudioApi = {
   app: {
@@ -22,7 +22,9 @@ const api: HermesStudioApi = {
   spaces: {
     list: () => ipcRenderer.invoke(channels.spacesList),
     getCurrent: () => ipcRenderer.invoke(channels.spacesGetCurrent),
-    setCurrent: (spaceId: string) => ipcRenderer.invoke(channels.spacesSetCurrent, spaceId)
+    setCurrent: (spaceId: string) => ipcRenderer.invoke(channels.spacesSetCurrent, spaceId),
+    add: (input: AddSpaceInput) => ipcRenderer.invoke(channels.spacesAdd, input),
+    remove: (spaceId: string) => ipcRenderer.invoke(channels.spacesRemove, spaceId)
   },
   settings: {
     get: () => ipcRenderer.invoke(channels.settingsGet),

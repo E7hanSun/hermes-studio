@@ -1,11 +1,13 @@
 import type {
   AppInfo,
+  AddSpaceInput,
   ConversationEvent,
   MessageInput,
   Profile,
   RuntimeStatus,
   Settings,
-  Space
+  Space,
+  SpaceMutationResult
 } from "./contracts";
 
 export type Unsubscribe = () => void;
@@ -28,6 +30,8 @@ export type HermesStudioApi = {
     list: () => Promise<Space[]>;
     getCurrent: () => Promise<Space>;
     setCurrent: (spaceId: string) => Promise<Space>;
+    add: (input: AddSpaceInput) => Promise<SpaceMutationResult>;
+    remove: (spaceId: string) => Promise<SpaceMutationResult>;
   };
   settings: {
     get: () => Promise<Settings>;

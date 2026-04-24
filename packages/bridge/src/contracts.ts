@@ -12,13 +12,25 @@ export type Profile = {
   name: string;
   model: string;
   description: string;
+  homePath: string;
+  command: string;
+  skillsCount: number;
+  cronJobsCount: number;
+  gatewayEnabled: boolean;
 };
 
 export type Space = {
   id: string;
   name: string;
   path: string;
-  gitBranch?: string;
+};
+
+export type SpaceMutationResult =
+  | { ok: true; spaces: Space[]; currentSpace: Space }
+  | { ok: false; error: string; spaces: Space[]; currentSpace: Space };
+
+export type AddSpaceInput = {
+  path: string;
 };
 
 export type ConversationSummary = {

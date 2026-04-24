@@ -130,6 +130,26 @@ export function App() {
               return;
             }
             setCurrentSpace(await window.hermesStudio.spaces.setCurrent(spaceId));
+          },
+          onAddSpace: async (path) => {
+            if (!window.hermesStudio) {
+              return { ok: false, error: "Desktop bridge is unavailable." };
+            }
+
+            const result = await window.hermesStudio.spaces.add({ path });
+            setSpaces(result.spaces);
+            setCurrentSpace(result.currentSpace);
+            return result.ok ? { ok: true } : { ok: false, error: result.error };
+          },
+          onRemoveSpace: async (spaceId) => {
+            if (!window.hermesStudio) {
+              return { ok: false, error: "Desktop bridge is unavailable." };
+            }
+
+            const result = await window.hermesStudio.spaces.remove(spaceId);
+            setSpaces(result.spaces);
+            setCurrentSpace(result.currentSpace);
+            return result.ok ? { ok: true } : { ok: false, error: result.error };
           }
         })
       )}
@@ -150,6 +170,8 @@ type ActiveViewProps = {
   settings: Settings | null;
   onSelectProfile: (profileId: string) => void;
   onSelectSpace: (spaceId: string) => void;
+  onAddSpace: (path: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  onRemoveSpace: (spaceId: string) => Promise<{ ok: true } | { ok: false; error: string }>;
 };
 
 function renderActiveView({
@@ -164,7 +186,9 @@ function renderActiveView({
   runtimeStatus,
   settings,
   onSelectProfile,
-  onSelectSpace
+  onSelectSpace,
+  onAddSpace,
+  onRemoveSpace
 }: ActiveViewProps) {
   if (viewMode === "active") {
     return <ActiveConversation composer={composer} conversation={conversation} profiles={profiles} spaces={spaces} />;
@@ -175,7 +199,15 @@ function renderActiveView({
   }
 
   if (viewMode === "spaces") {
-    return <SpacesPage spaces={spaces} currentSpace={currentSpace} onSelectSpace={onSelectSpace} />;
+    return (
+      <SpacesPage
+        spaces={spaces}
+        currentSpace={currentSpace}
+        onAddSpace={onAddSpace}
+        onRemoveSpace={onRemoveSpace}
+        onSelectSpace={onSelectSpace}
+      />
+    );
   }
 
   if (viewMode === "settings") {

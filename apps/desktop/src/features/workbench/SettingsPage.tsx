@@ -1,4 +1,4 @@
-import { Activity, CheckCircle2, Monitor, PackageCheck, TriangleAlert } from "lucide-react";
+import { Activity, CheckCircle2, Monitor, PackageCheck, Plug, RadioTower, ShieldCheck, TriangleAlert, Wrench } from "lucide-react";
 import type { AppInfo, RuntimeStatus, Settings } from "@hermes-studio/bridge";
 
 type SettingsPageProps = {
@@ -16,7 +16,7 @@ export function SettingsPage({ appInfo, runtimeStatus, settings }: SettingsPageP
       <header className="workbench-header">
         <div>
           <h1>Settings</h1>
-          <p>Runtime health, desktop environment, model defaults, and future configuration entry points.</p>
+          <p>Runtime health, gateway services, toolsets, MCP connections, and desktop configuration entry points.</p>
         </div>
       </header>
 
@@ -60,7 +60,7 @@ export function SettingsPage({ appInfo, runtimeStatus, settings }: SettingsPageP
         <section className="settings-panel settings-panel-wide">
           <div className="panel-heading">
             <Activity size={16} />
-            <h2>Next Configuration Areas</h2>
+            <h2>Configuration Areas</h2>
           </div>
           <div className="config-pill-row">
             <span>Model / Provider</span>
@@ -71,6 +71,50 @@ export function SettingsPage({ appInfo, runtimeStatus, settings }: SettingsPageP
             <span>Logs</span>
             <span>Advanced Config</span>
           </div>
+        </section>
+
+        <section className="settings-panel">
+          <div className="panel-heading">
+            <RadioTower size={16} />
+            <h2>Gateway & Cron</h2>
+          </div>
+          <KeyValue label="Gateway" value="foreground / service capable" />
+          <KeyValue label="Scheduler tick" value="60 seconds" />
+          <KeyValue label="Jobs file" value="~/.hermes/cron/jobs.json" />
+          <KeyValue label="Output path" value="~/.hermes/cron/output/" />
+        </section>
+
+        <section className="settings-panel">
+          <div className="panel-heading">
+            <Wrench size={16} />
+            <h2>Toolsets</h2>
+          </div>
+          <div className="config-pill-row">
+            <span>web</span>
+            <span>terminal</span>
+            <span>file</span>
+            <span>browser</span>
+            <span>memory</span>
+            <span>skills</span>
+            <span>cronjob</span>
+            <span>delegation</span>
+          </div>
+        </section>
+
+        <section className="settings-panel">
+          <div className="panel-heading">
+            <Plug size={16} />
+            <h2>MCP</h2>
+          </div>
+          <p className="panel-copy">External MCP servers will appear here with per-server tool filtering and startup status.</p>
+        </section>
+
+        <section className="settings-panel">
+          <div className="panel-heading">
+            <ShieldCheck size={16} />
+            <h2>Security</h2>
+          </div>
+          <p className="panel-copy">Command approval, prompt-injection checks, and renderer isolation stay managed by the desktop shell.</p>
         </section>
       </div>
     </div>

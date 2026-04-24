@@ -1,4 +1,4 @@
-import { Bot, Check, Cpu } from "lucide-react";
+import { Bot, CalendarClock, Check, Cpu, FolderCog, MessageCircle, TerminalSquare } from "lucide-react";
 import type { Profile } from "@hermes-studio/bridge";
 
 type ProfilesPageProps = {
@@ -14,7 +14,7 @@ export function ProfilesPage({ profiles, currentProfile, onSelectProfile }: Prof
       <header className="workbench-header">
         <div>
           <h1>Profiles</h1>
-          <p>Long-lived Hermes identities with their own model, skills, memory, and working style.</p>
+          <p>Each profile is a separate Hermes home with its own config, API keys, memory, sessions, skills, cron jobs, and gateway state.</p>
         </div>
         <button className="secondary-action" type="button" disabled>
           Create Profile
@@ -48,6 +48,25 @@ export function ProfilesPage({ profiles, currentProfile, onSelectProfile }: Prof
                 <Cpu size={13} />
                 <span>{profile.model}</span>
               </div>
+              <div className="metric-row">
+                <span>
+                  <TerminalSquare size={12} />
+                  {profile.command}
+                </span>
+                <span>
+                  <FolderCog size={12} />
+                  {profile.skillsCount} skills
+                </span>
+                <span>
+                  <CalendarClock size={12} />
+                  {profile.cronJobsCount} jobs
+                </span>
+                <span>
+                  <MessageCircle size={12} />
+                  {profile.gatewayEnabled ? "gateway on" : "gateway off"}
+                </span>
+              </div>
+              <div className="entity-path">{profile.homePath}</div>
             </button>
           );
         })}

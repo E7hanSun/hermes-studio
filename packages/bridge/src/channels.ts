@@ -9,6 +9,8 @@ export const channels = {
   spacesList: "spaces:list",
   spacesGetCurrent: "spaces:get-current",
   spacesSetCurrent: "spaces:set-current",
+  spacesAdd: "spaces:add",
+  spacesRemove: "spaces:remove",
   settingsGet: "settings:get",
   settingsUpdate: "settings:update"
 } as const;

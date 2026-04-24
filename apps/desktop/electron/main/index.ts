@@ -1,14 +1,52 @@
 import { app, BrowserWindow, ipcMain } from "electron";
-import { channels, type ConversationEvent, type MessageInput } from "@hermes-studio/bridge";
+import { existsSync, statSync } from "node:fs";
+import { homedir } from "node:os";
+import { basename, normalize, resolve } from "node:path";
+import { channels, type AddSpaceInput, type ConversationEvent, type MessageInput, type SpaceMutationResult } from "@hermes-studio/bridge";
 import { createAppWindow } from "./app-window";
 import { readHermesLock } from "./hermes-lock";
-import { profiles, settings, spaces } from "./mock-data";
+import { profiles, settings, spaces as initialSpaces } from "./mock-data";
 import { getRuntimeStatus } from "./runtime-status";
 
 let currentProfileId = "coder";
 let currentSpaceId = "home";
 let currentSettings = settings;
+let spaces = [...initialSpaces];
 let conversationCounter = 0;
+
+function getCurrentSpace() {
+  return spaces.find((space) => space.id === currentSpaceId) ?? spaces[0];
+}
+
+function toSpaceResult(error?: string): SpaceMutationResult {
+  const currentSpace = getCurrentSpace();
+
+  if (!currentSpace) {
+    return {
+      ok: false,
+      error: "No workspace is available.",
+      spaces,
+      currentSpace: { id: "missing", name: "Missing", path: "" }
+    };
+  }
+
+  return error ? { ok: false, error, spaces, currentSpace } : { ok: true, spaces, currentSpace };
+}
+
+function normalizeWorkspacePath(inputPath: string): string {
+  const trimmed = inputPath.trim();
+  const expanded = trimmed === "~" ? homedir() : trimmed.startsWith("~/") ? resolve(homedir(), trimmed.slice(2)) : trimmed;
+
+  return normalize(resolve(expanded));
+}
+
+function createSpaceId(workspacePath: string): string {
+  return workspacePath
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(-48);
+}
 
 function sendRuntimeEvent(sender: Electron.WebContents, event: ConversationEvent, delay: number): void {
   setTimeout(() => {
@@ -91,10 +129,61 @@ function registerIpcHandlers(): void {
   });
 
   ipcMain.handle(channels.spacesList, () => spaces);
-  ipcMain.handle(channels.spacesGetCurrent, () => spaces.find((space) => space.id === currentSpaceId) ?? spaces[0]);
+  ipcMain.handle(channels.spacesGetCurrent, () => getCurrentSpace());
   ipcMain.handle(channels.spacesSetCurrent, (_event, spaceId: string) => {
-    currentSpaceId = spaceId;
-    return spaces.find((space) => space.id === currentSpaceId) ?? spaces[0];
+    const target = spaces.find((space) => space.id === spaceId);
+
+    if (target) {
+      currentSpaceId = target.id;
+    }
+
+    return getCurrentSpace();
+  });
+  ipcMain.handle(channels.spacesAdd, (_event, input: AddSpaceInput) => {
+    const workspacePath = normalizeWorkspacePath(input.path);
+
+    if (!input.path.trim()) {
+      return toSpaceResult("Enter a workspace path before saving.");
+    }
+
+    if (!existsSync(workspacePath) || !statSync(workspacePath).isDirectory()) {
+      return toSpaceResult("That path does not exist or is not a directory.");
+    }
+
+    if (spaces.some((space) => normalizeWorkspacePath(space.path) === workspacePath)) {
+      return toSpaceResult("That workspace is already saved.");
+    }
+
+    const name = basename(workspacePath) || workspacePath;
+    const nextSpace = {
+      id: createSpaceId(workspacePath),
+      name,
+      path: workspacePath
+    };
+
+    spaces = [...spaces, nextSpace];
+    currentSpaceId = nextSpace.id;
+
+    return toSpaceResult();
+  });
+  ipcMain.handle(channels.spacesRemove, (_event, spaceId: string) => {
+    if (spaces.length <= 1) {
+      return toSpaceResult("Keep at least one workspace.");
+    }
+
+    const nextSpaces = spaces.filter((space) => space.id !== spaceId);
+
+    if (nextSpaces.length === spaces.length) {
+      return toSpaceResult("Workspace not found.");
+    }
+
+    spaces = nextSpaces;
+
+    if (currentSpaceId === spaceId) {
+      currentSpaceId = spaces[0]?.id ?? "";
+    }
+
+    return toSpaceResult();
   });
 
   ipcMain.handle(channels.settingsGet, () => currentSettings);
