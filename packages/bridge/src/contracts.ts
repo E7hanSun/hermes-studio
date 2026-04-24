@@ -33,6 +33,23 @@ export type AddSpaceInput = {
   path: string;
 };
 
+export type MemoryDocumentKey = "notes" | "profile";
+
+export type MemoryDocument = {
+  key: MemoryDocumentKey;
+  title: string;
+  description: string;
+  fileName: "MEMORY.md" | "USER.md";
+  path: string;
+  content: string;
+  updatedAt: string;
+};
+
+export type MemoryUpdateInput = {
+  key: MemoryDocumentKey;
+  content: string;
+};
+
 export type ConversationSummary = {
   id: string;
   title: string;

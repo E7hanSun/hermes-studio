@@ -1,4 +1,4 @@
-import type { Profile, Settings, Space } from "@hermes-studio/bridge";
+import type { MemoryDocument, Profile, Settings, Space } from "@hermes-studio/bridge";
 
 export const profiles: Profile[] = [
   {
@@ -46,6 +46,29 @@ export const spaces: Space[] = [
     id: "hermes-studio",
     name: "hermes-studio",
     path: "/Users/ember/code/hermes-studio"
+  }
+];
+
+export const memoryDocuments: MemoryDocument[] = [
+  {
+    key: "notes",
+    title: "My Notes",
+    description: "Agent notes for environment facts, project conventions, and lessons learned.",
+    fileName: "MEMORY.md",
+    path: "~/.hermes/memories/MEMORY.md",
+    content:
+      "Hermes Studio is an Electron desktop client for Hermes Agent.\n§\nProject uses pnpm workspaces with apps/desktop and packages/bridge.\n§\nUser prefers explicit approval before commits and pushes.",
+    updatedAt: "2026-04-24T08:00:00.000Z"
+  },
+  {
+    key: "profile",
+    title: "User Profile",
+    description: "User preferences, communication style, expectations, and workflow habits.",
+    fileName: "USER.md",
+    path: "~/.hermes/memories/USER.md",
+    content:
+      "User works in Chinese for Hermes Studio planning and implementation.\n§\nUser wants practical next steps and prefers the app to follow the current restrained desktop style.",
+    updatedAt: "2026-04-24T08:00:00.000Z"
   }
 ];
 

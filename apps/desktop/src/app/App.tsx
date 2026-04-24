@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AppInfo, Profile, RuntimeStatus, Settings, Space } from "@hermes-studio/bridge";
+import type { AppInfo, MemoryDocument, MemoryDocumentKey, Profile, RuntimeStatus, Settings, Space } from "@hermes-studio/bridge";
 import { AppShell } from "@/components/shell/AppShell";
 import { ActiveConversation } from "@/features/conversation/ActiveConversation";
 import type { ComposerProps } from "@/components/composer/Composer";
 import { emptyConversation, reduceConversationEvent, type ConversationState } from "@/features/conversation/conversation-state";
 import { ConversationHome } from "@/features/conversation/ConversationHome";
+import { PersonalMemoryPage } from "@/features/workbench/PersonalMemoryPage";
 import { ProfilesPage } from "@/features/workbench/ProfilesPage";
 import { SettingsPage } from "@/features/workbench/SettingsPage";
 import { SpacesPage } from "@/features/workbench/SpacesPage";
@@ -17,6 +18,8 @@ export function App() {
   const [draft, setDraft] = useState("");
   const [conversation, setConversation] = useState<ConversationState>(emptyConversation);
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
+  const [memoryDocuments, setMemoryDocuments] = useState<MemoryDocument[]>([]);
+  const [activeMemoryDocument, setActiveMemoryDocument] = useState<MemoryDocumentKey>("notes");
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
@@ -30,9 +33,10 @@ export function App() {
         return;
       }
 
-      const [info, profileList, spaceList, profile, space, runtime, loadedSettings] = await Promise.all([
+      const [info, profileList, memoryList, spaceList, profile, space, runtime, loadedSettings] = await Promise.all([
         window.hermesStudio.app.getInfo(),
         window.hermesStudio.profiles.list(),
+        window.hermesStudio.memory.list(),
         window.hermesStudio.spaces.list(),
         window.hermesStudio.profiles.getCurrent(),
         window.hermesStudio.spaces.getCurrent(),
@@ -42,6 +46,7 @@ export function App() {
 
       setAppInfo(info);
       setProfiles(profileList);
+      setMemoryDocuments(memoryList);
       setSpaces(spaceList);
       setCurrentProfile(profile);
       setCurrentSpace(space);
@@ -119,6 +124,18 @@ export function App() {
           appInfo,
           runtimeStatus,
           settings,
+          memoryDocuments,
+          activeMemoryDocument,
+          onSelectMemoryDocument: setActiveMemoryDocument,
+          onSaveMemoryDocument: async (key, content) => {
+            if (!window.hermesStudio) {
+              return null;
+            }
+
+            const updatedDocument = await window.hermesStudio.memory.update({ key, content });
+            setMemoryDocuments((current) => current.map((document) => (document.key === updatedDocument.key ? updatedDocument : document)));
+            return updatedDocument;
+          },
           onSelectProfile: async (profileId) => {
             if (!window.hermesStudio) {
               return;
@@ -168,6 +185,10 @@ type ActiveViewProps = {
   appInfo: AppInfo | null;
   runtimeStatus: RuntimeStatus | null;
   settings: Settings | null;
+  memoryDocuments: MemoryDocument[];
+  activeMemoryDocument: MemoryDocumentKey;
+  onSelectMemoryDocument: (key: MemoryDocumentKey) => void;
+  onSaveMemoryDocument: (key: MemoryDocumentKey, content: string) => Promise<MemoryDocument | null>;
   onSelectProfile: (profileId: string) => void;
   onSelectSpace: (spaceId: string) => void;
   onAddSpace: (path: string) => Promise<{ ok: true } | { ok: false; error: string }>;
@@ -185,6 +206,10 @@ function renderActiveView({
   appInfo,
   runtimeStatus,
   settings,
+  memoryDocuments,
+  activeMemoryDocument,
+  onSelectMemoryDocument,
+  onSaveMemoryDocument,
   onSelectProfile,
   onSelectSpace,
   onAddSpace,
@@ -196,6 +221,17 @@ function renderActiveView({
 
   if (viewMode === "profiles") {
     return <ProfilesPage profiles={profiles} currentProfile={currentProfile} onSelectProfile={onSelectProfile} />;
+  }
+
+  if (viewMode === "memory") {
+    return (
+      <PersonalMemoryPage
+        activeDocumentKey={activeMemoryDocument}
+        documents={memoryDocuments}
+        onSaveDocument={onSaveMemoryDocument}
+        onSelectDocument={onSelectMemoryDocument}
+      />
+    );
   }
 
   if (viewMode === "spaces") {

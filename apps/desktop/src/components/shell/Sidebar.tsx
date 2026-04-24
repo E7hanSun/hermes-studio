@@ -2,7 +2,6 @@ import {
   BookOpen,
   BriefcaseBusiness,
   CalendarClock,
-  ChevronRight,
   CircleUserRound,
   MessageSquarePlus,
   Settings,
@@ -42,12 +41,7 @@ export function Sidebar({ appInfo, conversations, activeView, onNewConversation,
           <button className={`sidebar-item sidebar-item-plain ${activeView === "memory" ? "sidebar-item-active" : ""}`} type="button" onClick={() => onNavigate("memory")}>
             <BookOpen size={14} />
             <span>Personal Memory</span>
-            <ChevronRight className="sidebar-caret" size={13} />
           </button>
-          <div className="memory-subitems">
-            <div className="sidebar-subitem">My Notes</div>
-            <div className="sidebar-subitem sidebar-subitem-active">User Profile</div>
-          </div>
         </section>
 
         <nav className="sidebar-nav" aria-label="Main navigation">

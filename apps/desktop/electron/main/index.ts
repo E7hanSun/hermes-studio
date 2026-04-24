@@ -2,17 +2,44 @@ import { app, BrowserWindow, ipcMain } from "electron";
 import { existsSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, normalize, resolve } from "node:path";
-import { channels, type AddSpaceInput, type ConversationEvent, type MessageInput, type SpaceMutationResult } from "@hermes-studio/bridge";
+import {
+  channels,
+  type AddSpaceInput,
+  type ConversationEvent,
+  type MemoryDocument,
+  type MemoryUpdateInput,
+  type MessageInput,
+  type SpaceMutationResult
+} from "@hermes-studio/bridge";
 import { createAppWindow } from "./app-window";
 import { readHermesLock } from "./hermes-lock";
-import { profiles, settings, spaces as initialSpaces } from "./mock-data";
+import { memoryDocuments, profiles, settings, spaces as initialSpaces } from "./mock-data";
 import { getRuntimeStatus } from "./runtime-status";
 
 let currentProfileId = "coder";
 let currentSpaceId = "home";
 let currentSettings = settings;
+let memory = [...memoryDocuments];
 let spaces = [...initialSpaces];
 let conversationCounter = 0;
+
+function updateMemoryDocument(input: MemoryUpdateInput): MemoryDocument {
+  const target = memory.find((document) => document.key === input.key);
+
+  if (!target) {
+    throw new Error("Memory document not found.");
+  }
+
+  const updatedDocument = {
+    ...target,
+    content: input.content,
+    updatedAt: new Date().toISOString()
+  };
+
+  memory = memory.map((document) => (document.key === input.key ? updatedDocument : document));
+
+  return updatedDocument;
+}
 
 function getCurrentSpace() {
   return spaces.find((space) => space.id === currentSpaceId) ?? spaces[0];
@@ -127,6 +154,9 @@ function registerIpcHandlers(): void {
     currentProfileId = profileId;
     return profiles.find((profile) => profile.id === currentProfileId) ?? profiles[0];
   });
+
+  ipcMain.handle(channels.memoryList, () => memory);
+  ipcMain.handle(channels.memoryUpdate, (_event, input: MemoryUpdateInput) => updateMemoryDocument(input));
 
   ipcMain.handle(channels.spacesList, () => spaces);
   ipcMain.handle(channels.spacesGetCurrent, () => getCurrentSpace());

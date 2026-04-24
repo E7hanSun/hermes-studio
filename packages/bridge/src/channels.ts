@@ -6,6 +6,8 @@ export const channels = {
   profilesList: "profiles:list",
   profilesGetCurrent: "profiles:get-current",
   profilesSetCurrent: "profiles:set-current",
+  memoryList: "memory:list",
+  memoryUpdate: "memory:update",
   spacesList: "spaces:list",
   spacesGetCurrent: "spaces:get-current",
   spacesSetCurrent: "spaces:set-current",

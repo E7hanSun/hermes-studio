@@ -2,6 +2,8 @@ import type {
   AppInfo,
   AddSpaceInput,
   ConversationEvent,
+  MemoryDocument,
+  MemoryUpdateInput,
   MessageInput,
   Profile,
   RuntimeStatus,
@@ -25,6 +27,10 @@ export type HermesStudioApi = {
     list: () => Promise<Profile[]>;
     getCurrent: () => Promise<Profile>;
     setCurrent: (profileId: string) => Promise<Profile>;
+  };
+  memory: {
+    list: () => Promise<MemoryDocument[]>;
+    update: (input: MemoryUpdateInput) => Promise<MemoryDocument>;
   };
   spaces: {
     list: () => Promise<Space[]>;
