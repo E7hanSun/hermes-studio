@@ -10,10 +10,11 @@ type AppShellProps = {
   activeView: ViewMode;
   children: React.ReactNode;
   onNewConversation: () => void;
+  onSelectConversation: (conversationId: string) => void;
   onNavigate: (viewMode: ViewMode) => void;
 };
 
-export function AppShell({ appInfo, conversations, activeView, children, onNewConversation, onNavigate }: AppShellProps) {
+export function AppShell({ appInfo, conversations, activeView, children, onNewConversation, onSelectConversation, onNavigate }: AppShellProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
@@ -26,6 +27,7 @@ export function AppShell({ appInfo, conversations, activeView, children, onNewCo
           activeView={activeView}
           collapsed={sidebarCollapsed}
           onNewConversation={onNewConversation}
+          onSelectConversation={onSelectConversation}
           onNavigate={onNavigate}
           onToggleCollapsed={() => setSidebarCollapsed((current) => !current)}
         />

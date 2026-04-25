@@ -24,6 +24,11 @@ export type ConversationItem =
       kind: "assistant";
       text: string;
       status: "streaming" | "done";
+    }
+  | {
+      id: string;
+      kind: "error";
+      text: string;
     };
 
 export type ConversationState = {
@@ -134,6 +139,13 @@ export function reduceConversationEvent(state: ConversationState, event: Convers
           return item;
         })
       };
+
+    case "runtime.error":
+      return appendItem(state, {
+        id: `${event.conversationId}-runtime-error`,
+        kind: "error",
+        text: event.message
+      });
 
     default:
       return state;

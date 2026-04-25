@@ -25,6 +25,10 @@ const api: HermesStudioApi = {
       return () => ipcRenderer.removeListener(channels.runtimeSubscribe, listener);
     }
   },
+  conversations: {
+    list: () => ipcRenderer.invoke(channels.conversationsList),
+    load: (conversationId: string) => ipcRenderer.invoke(channels.conversationsLoad, conversationId)
+  },
   profiles: {
     list: () => ipcRenderer.invoke(channels.profilesList),
     getCurrent: () => ipcRenderer.invoke(channels.profilesGetCurrent),

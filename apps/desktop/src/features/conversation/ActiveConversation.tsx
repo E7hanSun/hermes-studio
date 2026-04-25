@@ -1,4 +1,4 @@
-import { Copy, FileText, Terminal, Timer, Zap } from "lucide-react";
+import { AlertCircle, Copy, FileText, Terminal, Timer, Zap } from "lucide-react";
 import type { Profile, Space } from "@hermes-studio/bridge";
 import { Composer, type ComposerProps } from "@/components/composer/Composer";
 import type { ConversationItem, ConversationState } from "./conversation-state";
@@ -25,7 +25,7 @@ export function ActiveConversation({ composer, conversation, profiles, spaces }:
               <Timer size={13} />
               <span>Waiting</span>
             </div>
-            <p>Send a message to start the mock Hermes runtime event stream.</p>
+            <p>Send a message to start the Hermes runtime stream.</p>
           </section>
         ) : (
           conversation.items.map((item) => <ConversationItemView item={item} key={item.id} />)
@@ -85,6 +85,18 @@ function ConversationItemView({ item }: { item: ConversationItem }) {
         </div>
         {item.tool.command ? <code>{item.tool.command}</code> : null}
         {item.tool.output?.length ? <pre>{item.tool.output.join("\n")}</pre> : null}
+      </section>
+    );
+  }
+
+  if (item.kind === "error") {
+    return (
+      <section className="assistant-run assistant-run-error">
+        <div className="run-label">
+          <AlertCircle size={13} />
+          <span>Hermes error</span>
+        </div>
+        <p>{item.text}</p>
       </section>
     );
   }

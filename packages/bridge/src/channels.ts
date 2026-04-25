@@ -3,6 +3,8 @@ export const channels = {
   runtimeGetStatus: "runtime:get-status",
   runtimeSendMessage: "runtime:send-message",
   runtimeSubscribe: "runtime:subscribe",
+  conversationsList: "conversations:list",
+  conversationsLoad: "conversations:load",
   profilesList: "profiles:list",
   profilesGetCurrent: "profiles:get-current",
   profilesSetCurrent: "profiles:set-current",

@@ -27,7 +27,7 @@ import { ScheduledJobsPage } from "@/features/workbench/ScheduledJobsPage";
 import { SettingsPage } from "@/features/workbench/SettingsPage";
 import { SkillsPage } from "@/features/workbench/SkillsPage";
 import { SpacesPage } from "@/features/workbench/SpacesPage";
-import { mockConversations } from "@/mocks/conversations";
+import type { ConversationEvent, ConversationSummary } from "@hermes-studio/bridge";
 
 export type ViewMode = "home" | "active" | "memory" | "models" | "skills" | "scheduled-jobs" | "spaces" | "profiles" | "settings";
 
@@ -35,6 +35,7 @@ export function App() {
   const [viewMode, setViewMode] = useState<ViewMode>("home");
   const [draft, setDraft] = useState("");
   const [conversation, setConversation] = useState<ConversationState>(emptyConversation);
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [memoryDocuments, setMemoryDocuments] = useState<MemoryDocument[]>([]);
   const [modelConfig, setModelConfig] = useState<ModelConfig | null>(null);
@@ -57,7 +58,7 @@ export function App() {
         return;
       }
 
-      const [info, profileList, memoryList, loadedModelConfig, installedSkillList, hubSkillList, scheduledJobList, spaceList, profile, space, runtime, loadedSettings] = await Promise.all([
+      const [info, profileList, memoryList, loadedModelConfig, installedSkillList, hubSkillList, scheduledJobList, spaceList, profile, space, runtime, loadedSettings, loadedConversations] = await Promise.all([
         window.hermesStudio.app.getInfo(),
         window.hermesStudio.profiles.list(),
         window.hermesStudio.memory.list(),
@@ -69,7 +70,8 @@ export function App() {
         window.hermesStudio.profiles.getCurrent(),
         window.hermesStudio.spaces.getCurrent(),
         window.hermesStudio.runtime.getStatus(),
-        window.hermesStudio.settings.get()
+        window.hermesStudio.settings.get(),
+        window.hermesStudio.conversations.list()
       ]);
 
       setAppInfo(info);
@@ -86,6 +88,7 @@ export function App() {
       setCurrentSpace(space);
       setRuntimeStatus(runtime);
       setSettings(loadedSettings);
+      setConversations(loadedConversations);
     }
 
     void loadInitialData();
@@ -99,8 +102,31 @@ export function App() {
     return window.hermesStudio.runtime.onEvent((event) => {
       setConversation((current) => reduceConversationEvent(current, event));
       setViewMode("active");
+
+      if (event.type === "message.completed" || event.type === "runtime.error") {
+        void refreshConversations();
+      }
     });
   }, []);
+
+  async function refreshConversations(): Promise<void> {
+    if (!window.hermesStudio) {
+      return;
+    }
+
+    setConversations(await window.hermesStudio.conversations.list());
+  }
+
+  async function selectConversation(conversationId: string): Promise<void> {
+    if (!window.hermesStudio) {
+      return;
+    }
+
+    const events = await window.hermesStudio.conversations.load(conversationId);
+    setConversation(events.reduce((current: ConversationState, event: ConversationEvent) => reduceConversationEvent(current, event), emptyConversation));
+    setConversations((current) => current.map((conversation) => ({ ...conversation, active: conversation.id === conversationId })));
+    setViewMode("active");
+  }
 
   const model = currentProfile?.model ?? "GPT-5.4 Mini";
 
@@ -119,12 +145,13 @@ export function App() {
 
         setViewMode("active");
         if (window.hermesStudio) {
-          await window.hermesStudio.runtime.sendMessage({
+          const result = await window.hermesStudio.runtime.sendMessage({
             text,
             profileId: currentProfile.id,
             spaceId: currentSpace.id,
             model
           });
+          setConversations((current) => current.map((conversation) => ({ ...conversation, active: conversation.id === result.conversationId })));
         }
         setDraft("");
       }
@@ -135,9 +162,14 @@ export function App() {
   return (
     <AppShell
       appInfo={appInfo}
-      conversations={mockConversations}
+      conversations={conversations}
       activeView={viewMode}
-      onNewConversation={() => setViewMode("home")}
+      onNewConversation={() => {
+        setConversation(emptyConversation);
+        setConversations((current) => current.map((conversation) => ({ ...conversation, active: false })));
+        setViewMode("home");
+      }}
+      onSelectConversation={(conversationId) => void selectConversation(conversationId)}
       onNavigate={setViewMode}
     >
       {viewMode === "home" ? (

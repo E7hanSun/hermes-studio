@@ -2,6 +2,7 @@ import type {
   AppInfo,
   AddSpaceInput,
   ConversationEvent,
+  ConversationSummary,
   CreateScheduledJobInput,
   HubSkill,
   InstalledSkill,
@@ -31,6 +32,10 @@ export type HermesStudioApi = {
     getStatus: () => Promise<RuntimeStatus>;
     sendMessage: (input: MessageInput) => Promise<{ conversationId: string }>;
     onEvent: (callback: (event: ConversationEvent) => void) => Unsubscribe;
+  };
+  conversations: {
+    list: () => Promise<ConversationSummary[]>;
+    load: (conversationId: string) => Promise<ConversationEvent[]>;
   };
   profiles: {
     list: () => Promise<Profile[]>;

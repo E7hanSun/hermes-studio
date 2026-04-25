@@ -233,6 +233,7 @@ export type ConversationEvent =
   | { type: "tool.started"; conversationId: string; tool: ToolCall }
   | { type: "tool.output"; conversationId: string; toolCallId: string; output: string }
   | { type: "tool.finished"; conversationId: string; toolCallId: string; exitCode: number }
+  | { type: "runtime.error"; conversationId: string; message: string }
   | { type: "approval.requested"; conversationId: string; approvalId: string; summary: string };
 
 export type Settings = {

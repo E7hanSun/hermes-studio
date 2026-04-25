@@ -22,6 +22,7 @@ type SidebarProps = {
   activeView: ViewMode;
   collapsed: boolean;
   onNewConversation: () => void;
+  onSelectConversation: (conversationId: string) => void;
   onNavigate: (viewMode: ViewMode) => void;
   onToggleCollapsed: () => void;
 };
@@ -34,7 +35,7 @@ const navItems = [
   { label: "Profiles", icon: CircleUserRound, view: "profiles" }
 ] as const;
 
-export function Sidebar({ appInfo, conversations, activeView, collapsed, onNewConversation, onNavigate, onToggleCollapsed }: SidebarProps) {
+export function Sidebar({ appInfo, conversations, activeView, collapsed, onNewConversation, onSelectConversation, onNavigate, onToggleCollapsed }: SidebarProps) {
   const today = conversations.filter((conversation) => conversation.group === "today");
   const week = conversations.filter((conversation) => conversation.group === "week");
   const fortnight = conversations.filter((conversation) => conversation.group === "fortnight");
@@ -99,10 +100,16 @@ export function Sidebar({ appInfo, conversations, activeView, collapsed, onNewCo
         </nav>
 
         <section className="conversation-list">
-          <ConversationGroup title="Today" conversations={today} activeView={activeView} />
-          <ConversationGroup title="This Week" conversations={week} activeView={activeView} />
-          <ConversationGroup title="Last Two Weeks" conversations={fortnight} activeView={activeView} />
-          <ConversationGroup title="Older Than A Month" conversations={older} activeView={activeView} />
+          {conversations.length === 0 ? (
+            <div className="conversation-empty">No Hermes sessions yet</div>
+          ) : (
+            <>
+              <ConversationGroup title="Today" conversations={today} activeView={activeView} onSelectConversation={onSelectConversation} />
+              <ConversationGroup title="This Week" conversations={week} activeView={activeView} onSelectConversation={onSelectConversation} />
+              <ConversationGroup title="Last Two Weeks" conversations={fortnight} activeView={activeView} onSelectConversation={onSelectConversation} />
+              <ConversationGroup title="Older Than A Month" conversations={older} activeView={activeView} onSelectConversation={onSelectConversation} />
+            </>
+          )}
         </section>
       </div>
 
@@ -125,11 +132,13 @@ export function Sidebar({ appInfo, conversations, activeView, collapsed, onNewCo
 function ConversationGroup({
   title,
   conversations,
-  activeView
+  activeView,
+  onSelectConversation
 }: {
   title: string;
   conversations: ConversationSummary[];
   activeView: ViewMode;
+  onSelectConversation: (conversationId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
 
@@ -147,7 +156,12 @@ function ConversationGroup({
         ? conversations.map((conversation) => {
             const active = activeView === "active" && conversation.active;
             return (
-              <button className={`conversation-item ${active ? "conversation-item-active" : ""}`} key={conversation.id} type="button">
+              <button
+                className={`conversation-item ${active ? "conversation-item-active" : ""}`}
+                key={conversation.id}
+                type="button"
+                onClick={() => onSelectConversation(conversation.id)}
+              >
                 <span className="conversation-profile-pill">{conversation.profile}</span>
                 <span className="conversation-title-text">{conversation.title}</span>
                 <time>{conversation.timeLabel}</time>

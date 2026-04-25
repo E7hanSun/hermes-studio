@@ -5,7 +5,6 @@ import { basename, normalize, resolve } from "node:path";
 import {
   channels,
   type AddSpaceInput,
-  type ConversationEvent,
   type CreateScheduledJobInput,
   type HubSkill,
   type InstalledSkill,
@@ -20,6 +19,7 @@ import {
 } from "@hermes-studio/bridge";
 import { createAppWindow } from "./app-window";
 import { readHermesLock } from "./hermes-lock";
+import { HermesRuntimeManager } from "./hermes-runtime-manager";
 import {
   hubSkills as initialHubSkills,
   installedSkills as initialInstalledSkills,
@@ -30,7 +30,6 @@ import {
   settings,
   spaces as initialSpaces
 } from "./mock-data";
-import { getRuntimeStatus } from "./runtime-status";
 
 let currentProfileId = "coder";
 let currentSpaceId = "home";
@@ -43,7 +42,7 @@ let hubSkills = initialHubSkills.map((skill) => ({
   installed: initialInstalledSkills.some((installedSkill) => installedSkill.id === skill.id)
 }));
 let spaces = [...initialSpaces];
-let conversationCounter = 0;
+const runtimeManager = new HermesRuntimeManager();
 
 function updateMemoryDocument(input: MemoryUpdateInput): MemoryDocument {
   const target = memory.find((document) => document.key === input.key);
@@ -270,64 +269,6 @@ function installHubSkill(skillId: string): SkillInstallResult {
   return { ok: true, installedSkills, hubSkills, installedSkill };
 }
 
-function sendRuntimeEvent(sender: Electron.WebContents, event: ConversationEvent, delay: number): void {
-  setTimeout(() => {
-    if (!sender.isDestroyed()) {
-      sender.send(channels.runtimeSubscribe, event);
-    }
-  }, delay);
-}
-
-function scheduleMockRuntime(sender: Electron.WebContents, input: MessageInput, conversationId: string): void {
-  const title = input.text.length > 46 ? `${input.text.slice(0, 43)}...` : input.text;
-  const toolCallId = `${conversationId}-tool-1`;
-
-  sendRuntimeEvent(
-    sender,
-    {
-      type: "conversation.started",
-      conversationId,
-      title,
-      input: input.text,
-      createdAt: new Date().toISOString()
-    },
-    80
-  );
-  sendRuntimeEvent(sender, { type: "thinking.started", conversationId, title: "Thinking" }, 420);
-  sendRuntimeEvent(sender, { type: "thinking.updated", conversationId, text: "I will inspect the current space and verify the project shape first." }, 760);
-  sendRuntimeEvent(
-    sender,
-    {
-      type: "tool.started",
-      conversationId,
-      tool: {
-        id: toolCallId,
-        kind: "terminal",
-        title: "terminal",
-        command: "rg --files | head",
-        status: "running",
-        output: []
-      }
-    },
-    1100
-  );
-  sendRuntimeEvent(sender, { type: "tool.output", conversationId, toolCallId, output: "apps/desktop/src/app/App.tsx" }, 1460);
-  sendRuntimeEvent(sender, { type: "tool.output", conversationId, toolCallId, output: "packages/bridge/src/contracts.ts" }, 1800);
-  sendRuntimeEvent(sender, { type: "tool.output", conversationId, toolCallId, output: "packages/design-system/src/tokens.ts" }, 2120);
-  sendRuntimeEvent(sender, { type: "tool.finished", conversationId, toolCallId, exitCode: 0 }, 2460);
-
-  const deltas = [
-    "I found the desktop shell, bridge contracts, and design tokens. ",
-    "The next clean step is to make the conversation UI event-driven, ",
-    "so the renderer behaves like it is connected to the real Hermes runtime."
-  ];
-
-  deltas.forEach((text, index) => {
-    sendRuntimeEvent(sender, { type: "message.delta", conversationId, text }, 2860 + index * 520);
-  });
-  sendRuntimeEvent(sender, { type: "message.completed", conversationId }, 4560);
-}
-
 function registerIpcHandlers(): void {
   ipcMain.handle(channels.appGetInfo, () => ({
     version: app.getVersion(),
@@ -335,12 +276,20 @@ function registerIpcHandlers(): void {
     hermesVersion: readHermesLock()
   }));
 
-  ipcMain.handle(channels.runtimeGetStatus, () => getRuntimeStatus());
+  ipcMain.handle(channels.runtimeGetStatus, () => runtimeManager.getStatus());
 
   ipcMain.handle(channels.runtimeSendMessage, (event, input: MessageInput) => {
-    const conversationId = input.conversationId ?? `mock-conversation-${++conversationCounter}`;
-    scheduleMockRuntime(event.sender, input, conversationId);
-    return { conversationId };
+    const profile = profiles.find((item) => item.id === input.profileId) ?? profiles.find((item) => item.id === currentProfileId);
+    const space = spaces.find((item) => item.id === input.spaceId) ?? getCurrentSpace();
+    return runtimeManager.sendMessage(event.sender, input, { profile, space });
+  });
+  ipcMain.handle(channels.conversationsList, () => {
+    const profile = profiles.find((item) => item.id === currentProfileId);
+    return runtimeManager.listConversations({ profile, space: getCurrentSpace() });
+  });
+  ipcMain.handle(channels.conversationsLoad, (_event, conversationId: string) => {
+    const profile = profiles.find((item) => item.id === currentProfileId);
+    return runtimeManager.loadConversationEvents(conversationId, { profile, space: getCurrentSpace() });
   });
 
   ipcMain.handle(channels.profilesList, () => profiles);
