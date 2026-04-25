@@ -13,6 +13,10 @@ export type {
   MemoryDocumentKey,
   MemoryUpdateInput,
   MessageInput,
+  ModelConfig,
+  ModelCredential,
+  ModelProvider,
+  ModelProviderStatus,
   Profile,
   RuntimeStatus,
   ScheduledJob,
@@ -28,5 +32,7 @@ export type {
   Space,
   SpaceMutationResult,
   ToolCall,
+  AuxiliaryModelSlot,
+  CustomModelEndpoint,
   UpdateScheduledJobInput
 } from "./contracts";

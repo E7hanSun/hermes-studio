@@ -146,6 +146,66 @@ export type RuntimeStatus =
   | { state: "running"; pid: number }
   | { state: "error"; message: string };
 
+export type ModelProviderStatus = "configured" | "missing-key" | "oauth-ready" | "available" | "disabled";
+
+export type ModelCredential = {
+  id: string;
+  provider: string;
+  label: string;
+  authType: "api-key" | "oauth" | "config" | "env" | "aws";
+  source: string;
+  status: "ok" | "missing" | "expired" | "cooldown";
+  selected: boolean;
+  requestCount: number;
+};
+
+export type ModelProvider = {
+  id: string;
+  name: string;
+  description: string;
+  category: "oauth" | "api-key" | "local" | "cloud" | "custom";
+  status: ModelProviderStatus;
+  modelCount: number;
+  supportsOAuth: boolean;
+  supportsApiKey: boolean;
+  supportsCustomEndpoint: boolean;
+};
+
+export type CustomModelEndpoint = {
+  id: string;
+  name: string;
+  baseUrl: string;
+  model: string;
+  credentialSource: string;
+};
+
+export type AuxiliaryModelSlot = {
+  id: "vision" | "web_extract" | "compression" | "mcp" | "flush_memories";
+  label: string;
+  provider: string;
+  model: string;
+  timeout: number;
+};
+
+export type ModelConfig = {
+  primary: {
+    provider: string;
+    model: string;
+    baseUrl?: string;
+    sourcePath: string;
+  };
+  fallback: {
+    provider: string;
+    model: string;
+    enabled: boolean;
+  };
+  credentialPoolStrategies: Record<string, "fill_first" | "round_robin" | "least_used" | "random">;
+  providers: ModelProvider[];
+  credentials: ModelCredential[];
+  customEndpoints: CustomModelEndpoint[];
+  auxiliary: AuxiliaryModelSlot[];
+};
+
 export type MessageInput = {
   conversationId?: string;
   text: string;

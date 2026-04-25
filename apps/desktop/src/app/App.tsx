@@ -6,6 +6,7 @@ import type {
   InstalledSkill,
   MemoryDocument,
   MemoryDocumentKey,
+  ModelConfig,
   Profile,
   RuntimeStatus,
   ScheduledJob,
@@ -19,6 +20,7 @@ import { ActiveConversation } from "@/features/conversation/ActiveConversation";
 import type { ComposerProps } from "@/components/composer/Composer";
 import { emptyConversation, reduceConversationEvent, type ConversationState } from "@/features/conversation/conversation-state";
 import { ConversationHome } from "@/features/conversation/ConversationHome";
+import { ModelsPage } from "@/features/workbench/ModelsPage";
 import { PersonalMemoryPage } from "@/features/workbench/PersonalMemoryPage";
 import { ProfilesPage } from "@/features/workbench/ProfilesPage";
 import { ScheduledJobsPage } from "@/features/workbench/ScheduledJobsPage";
@@ -27,7 +29,7 @@ import { SkillsPage } from "@/features/workbench/SkillsPage";
 import { SpacesPage } from "@/features/workbench/SpacesPage";
 import { mockConversations } from "@/mocks/conversations";
 
-export type ViewMode = "home" | "active" | "memory" | "skills" | "scheduled-jobs" | "spaces" | "profiles" | "settings";
+export type ViewMode = "home" | "active" | "memory" | "models" | "skills" | "scheduled-jobs" | "spaces" | "profiles" | "settings";
 
 export function App() {
   const [viewMode, setViewMode] = useState<ViewMode>("home");
@@ -35,6 +37,7 @@ export function App() {
   const [conversation, setConversation] = useState<ConversationState>(emptyConversation);
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [memoryDocuments, setMemoryDocuments] = useState<MemoryDocument[]>([]);
+  const [modelConfig, setModelConfig] = useState<ModelConfig | null>(null);
   const [activeMemoryDocument, setActiveMemoryDocument] = useState<MemoryDocumentKey>("notes");
   const [installedSkills, setInstalledSkills] = useState<InstalledSkill[]>([]);
   const [hubSkills, setHubSkills] = useState<HubSkill[]>([]);
@@ -54,10 +57,11 @@ export function App() {
         return;
       }
 
-      const [info, profileList, memoryList, installedSkillList, hubSkillList, scheduledJobList, spaceList, profile, space, runtime, loadedSettings] = await Promise.all([
+      const [info, profileList, memoryList, loadedModelConfig, installedSkillList, hubSkillList, scheduledJobList, spaceList, profile, space, runtime, loadedSettings] = await Promise.all([
         window.hermesStudio.app.getInfo(),
         window.hermesStudio.profiles.list(),
         window.hermesStudio.memory.list(),
+        window.hermesStudio.models.getConfig(),
         window.hermesStudio.skills.listInstalled(),
         window.hermesStudio.skills.searchHub({ query: "", source: "all" }),
         window.hermesStudio.scheduledJobs.list(),
@@ -71,6 +75,7 @@ export function App() {
       setAppInfo(info);
       setProfiles(profileList);
       setMemoryDocuments(memoryList);
+      setModelConfig(loadedModelConfig);
       setInstalledSkills(installedSkillList);
       setHubSkills(hubSkillList);
       setSelectedSkill(installedSkillList[0] ? { kind: "installed", skill: installedSkillList[0] } : null);
@@ -154,6 +159,7 @@ export function App() {
           runtimeStatus,
           settings,
           memoryDocuments,
+          modelConfig,
           installedSkills,
           hubSkills,
           selectedSkill,
@@ -327,6 +333,7 @@ type ActiveViewProps = {
   runtimeStatus: RuntimeStatus | null;
   settings: Settings | null;
   memoryDocuments: MemoryDocument[];
+  modelConfig: ModelConfig | null;
   installedSkills: InstalledSkill[];
   hubSkills: HubSkill[];
   selectedSkill: { kind: "installed"; skill: InstalledSkill } | { kind: "hub"; skill: HubSkill } | null;
@@ -365,6 +372,7 @@ function renderActiveView({
   runtimeStatus,
   settings,
   memoryDocuments,
+  modelConfig,
   installedSkills,
   hubSkills,
   selectedSkill,
@@ -407,6 +415,10 @@ function renderActiveView({
         onSelectDocument={onSelectMemoryDocument}
       />
     );
+  }
+
+  if (viewMode === "models") {
+    return <ModelsPage modelConfig={modelConfig} />;
   }
 
   if (viewMode === "skills") {
@@ -469,6 +481,10 @@ function PlaceholderPage({ viewMode }: { viewMode: Exclude<ViewMode, "home" | "a
     skills: {
       title: "Skills",
       description: "Installed skills, browse/search, and current profile enablement will live here."
+    },
+    models: {
+      title: "Models",
+      description: "Provider setup, primary model, credentials, fallback, and auxiliary model routing will live here."
     },
     "scheduled-jobs": {
       title: "Scheduled Jobs",

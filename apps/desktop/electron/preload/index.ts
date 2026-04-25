@@ -34,6 +34,9 @@ const api: HermesStudioApi = {
     list: () => ipcRenderer.invoke(channels.memoryList),
     update: (input: MemoryUpdateInput) => ipcRenderer.invoke(channels.memoryUpdate, input)
   },
+  models: {
+    getConfig: () => ipcRenderer.invoke(channels.modelsGetConfig)
+  },
   skills: {
     listInstalled: () => ipcRenderer.invoke(channels.skillsListInstalled),
     searchHub: (input: SkillSearchInput) => ipcRenderer.invoke(channels.skillsSearchHub, input),

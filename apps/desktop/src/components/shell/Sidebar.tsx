@@ -3,6 +3,7 @@ import {
   BriefcaseBusiness,
   CalendarClock,
   CircleUserRound,
+  Cpu,
   MessageSquarePlus,
   Settings,
   Sparkles
@@ -19,6 +20,7 @@ type SidebarProps = {
 };
 
 const navItems = [
+  { label: "Models", icon: Cpu, view: "models" },
   { label: "Skills", icon: Sparkles, view: "skills" },
   { label: "Scheduled Jobs", icon: CalendarClock, view: "scheduled-jobs" },
   { label: "Spaces", icon: BriefcaseBusiness, view: "spaces" },

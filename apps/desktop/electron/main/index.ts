@@ -24,6 +24,7 @@ import {
   hubSkills as initialHubSkills,
   installedSkills as initialInstalledSkills,
   memoryDocuments,
+  modelConfig,
   profiles,
   scheduledJobs as initialScheduledJobs,
   settings,
@@ -351,6 +352,8 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle(channels.memoryList, () => memory);
   ipcMain.handle(channels.memoryUpdate, (_event, input: MemoryUpdateInput) => updateMemoryDocument(input));
+
+  ipcMain.handle(channels.modelsGetConfig, () => modelConfig);
 
   ipcMain.handle(channels.skillsListInstalled, () => installedSkills);
   ipcMain.handle(channels.skillsSearchHub, (_event, input: SkillSearchInput) => searchHubSkills(input));

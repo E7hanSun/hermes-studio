@@ -8,6 +8,7 @@ import type {
   MemoryDocument,
   MemoryUpdateInput,
   MessageInput,
+  ModelConfig,
   Profile,
   RuntimeStatus,
   ScheduledJob,
@@ -39,6 +40,9 @@ export type HermesStudioApi = {
   memory: {
     list: () => Promise<MemoryDocument[]>;
     update: (input: MemoryUpdateInput) => Promise<MemoryDocument>;
+  };
+  models: {
+    getConfig: () => Promise<ModelConfig>;
   };
   skills: {
     listInstalled: () => Promise<InstalledSkill[]>;

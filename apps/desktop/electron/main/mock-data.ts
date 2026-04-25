@@ -1,4 +1,4 @@
-import type { HubSkill, InstalledSkill, MemoryDocument, Profile, ScheduledJob, Settings, Space } from "@hermes-studio/bridge";
+import type { HubSkill, InstalledSkill, MemoryDocument, ModelConfig, Profile, ScheduledJob, Settings, Space } from "@hermes-studio/bridge";
 
 export const profiles: Profile[] = [
   {
@@ -71,6 +71,176 @@ export const memoryDocuments: MemoryDocument[] = [
     updatedAt: "2026-04-24T08:00:00.000Z"
   }
 ];
+
+export const modelConfig: ModelConfig = {
+  primary: {
+    provider: "openrouter",
+    model: "openai/gpt-5.4-mini",
+    sourcePath: "~/.hermes/config.yaml"
+  },
+  fallback: {
+    provider: "anthropic",
+    model: "claude-sonnet-4-6",
+    enabled: true
+  },
+  credentialPoolStrategies: {
+    openrouter: "round_robin",
+    anthropic: "least_used"
+  },
+  providers: [
+    {
+      id: "nous",
+      name: "Nous Portal",
+      description: "Subscription-backed Hermes provider with OAuth and optional Tool Gateway.",
+      category: "oauth",
+      status: "oauth-ready",
+      modelCount: 18,
+      supportsOAuth: true,
+      supportsApiKey: false,
+      supportsCustomEndpoint: false
+    },
+    {
+      id: "openai-codex",
+      name: "OpenAI Codex",
+      description: "ChatGPT OAuth backed provider for Codex models.",
+      category: "oauth",
+      status: "available",
+      modelCount: 4,
+      supportsOAuth: true,
+      supportsApiKey: false,
+      supportsCustomEndpoint: false
+    },
+    {
+      id: "anthropic",
+      name: "Anthropic",
+      description: "Claude via Anthropic API key, Claude Code auth, or Hermes OAuth.",
+      category: "api-key",
+      status: "configured",
+      modelCount: 12,
+      supportsOAuth: true,
+      supportsApiKey: true,
+      supportsCustomEndpoint: false
+    },
+    {
+      id: "openrouter",
+      name: "OpenRouter",
+      description: "Multi-model OpenAI-compatible routing through OPENROUTER_API_KEY.",
+      category: "api-key",
+      status: "configured",
+      modelCount: 220,
+      supportsOAuth: false,
+      supportsApiKey: true,
+      supportsCustomEndpoint: false
+    },
+    {
+      id: "gemini",
+      name: "Gemini",
+      description: "Google Gemini API models and auxiliary auto-detection.",
+      category: "api-key",
+      status: "missing-key",
+      modelCount: 10,
+      supportsOAuth: false,
+      supportsApiKey: true,
+      supportsCustomEndpoint: false
+    },
+    {
+      id: "custom",
+      name: "Custom Endpoint",
+      description: "Any OpenAI-compatible /v1/chat/completions endpoint, including Ollama or vLLM.",
+      category: "custom",
+      status: "available",
+      modelCount: 2,
+      supportsOAuth: false,
+      supportsApiKey: true,
+      supportsCustomEndpoint: true
+    }
+  ],
+  credentials: [
+    {
+      id: "openrouter-env",
+      provider: "openrouter",
+      label: "OPENROUTER_API_KEY",
+      authType: "env",
+      source: "~/.hermes/.env",
+      status: "ok",
+      selected: true,
+      requestCount: 142
+    },
+    {
+      id: "anthropic-oauth",
+      provider: "anthropic",
+      label: "Hermes PKCE",
+      authType: "oauth",
+      source: "~/.hermes/auth.json",
+      status: "ok",
+      selected: true,
+      requestCount: 28
+    },
+    {
+      id: "custom-local",
+      provider: "custom:local-ollama",
+      label: "Local Ollama",
+      authType: "config",
+      source: "~/.hermes/config.yaml",
+      status: "ok",
+      selected: true,
+      requestCount: 7
+    }
+  ],
+  customEndpoints: [
+    {
+      id: "local-ollama",
+      name: "Local Ollama",
+      baseUrl: "http://localhost:11434/v1",
+      model: "qwen3-coder:30b",
+      credentialSource: "config:Local Ollama"
+    },
+    {
+      id: "local-vllm",
+      name: "Local vLLM",
+      baseUrl: "http://localhost:8000/v1",
+      model: "Qwen/Qwen3-Coder",
+      credentialSource: "none"
+    }
+  ],
+  auxiliary: [
+    {
+      id: "vision",
+      label: "Vision analysis",
+      provider: "auto",
+      model: "gemini flash auto",
+      timeout: 120
+    },
+    {
+      id: "web_extract",
+      label: "Web extraction",
+      provider: "auto",
+      model: "main fallback",
+      timeout: 360
+    },
+    {
+      id: "compression",
+      label: "Context compression",
+      provider: "main",
+      model: "primary model",
+      timeout: 120
+    },
+    {
+      id: "mcp",
+      label: "MCP dispatch",
+      provider: "auto",
+      model: "provider default",
+      timeout: 30
+    },
+    {
+      id: "flush_memories",
+      label: "Memory flush",
+      provider: "main",
+      model: "primary model",
+      timeout: 30
+    }
+  ]
+};
 
 export const installedSkills: InstalledSkill[] = [
   {

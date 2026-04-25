@@ -8,6 +8,7 @@ export const channels = {
   profilesSetCurrent: "profiles:set-current",
   memoryList: "memory:list",
   memoryUpdate: "memory:update",
+  modelsGetConfig: "models:get-config",
   skillsListInstalled: "skills:list-installed",
   skillsSearchHub: "skills:search-hub",
   skillsInstallFromHub: "skills:install-from-hub",
