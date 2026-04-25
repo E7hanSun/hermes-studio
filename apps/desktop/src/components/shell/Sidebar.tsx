@@ -2,12 +2,14 @@ import {
   BookOpen,
   BriefcaseBusiness,
   CalendarClock,
+  ChevronDown,
   CircleUserRound,
   Cpu,
-  MessageSquarePlus,
+  Plus,
   Settings,
   Sparkles
 } from "lucide-react";
+import { useState } from "react";
 import type { AppInfo, ConversationSummary } from "@hermes-studio/bridge";
 import type { ViewMode } from "@/app/App";
 
@@ -29,24 +31,24 @@ const navItems = [
 
 export function Sidebar({ appInfo, conversations, activeView, onNewConversation, onNavigate }: SidebarProps) {
   const today = conversations.filter((conversation) => conversation.group === "today");
-  const yesterday = conversations.filter((conversation) => conversation.group === "yesterday");
+  const week = conversations.filter((conversation) => conversation.group === "week");
+  const fortnight = conversations.filter((conversation) => conversation.group === "fortnight");
+  const older = conversations.filter((conversation) => conversation.group === "older");
 
   return (
     <aside className="sidebar">
       <div className="sidebar-scroll">
         <button className={`sidebar-item ${activeView === "home" ? "sidebar-item-active" : "sidebar-item-plain"}`} type="button" onClick={onNewConversation}>
-          <MessageSquarePlus size={14} />
+          <Plus size={16} />
           <span>New Conversation</span>
         </button>
 
-        <section className="memory-group">
+        <nav className="sidebar-nav" aria-label="Main navigation">
           <button className={`sidebar-item sidebar-item-plain ${activeView === "memory" ? "sidebar-item-active" : ""}`} type="button" onClick={() => onNavigate("memory")}>
             <BookOpen size={14} />
             <span>Personal Memory</span>
           </button>
-        </section>
 
-        <nav className="sidebar-nav" aria-label="Main navigation">
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -64,10 +66,10 @@ export function Sidebar({ appInfo, conversations, activeView, onNewConversation,
         </nav>
 
         <section className="conversation-list">
-          <div className="section-title">Conversations</div>
           <ConversationGroup title="Today" conversations={today} activeView={activeView} />
-          <ConversationGroup title="Yesterday" conversations={yesterday} activeView={activeView} />
-          <button className="view-all" type="button">View all</button>
+          <ConversationGroup title="This Week" conversations={week} activeView={activeView} />
+          <ConversationGroup title="Last Two Weeks" conversations={fortnight} activeView={activeView} />
+          <ConversationGroup title="Older Than A Month" conversations={older} activeView={activeView} />
         </section>
       </div>
 
@@ -91,18 +93,30 @@ function ConversationGroup({
   conversations: ConversationSummary[];
   activeView: ViewMode;
 }) {
+  const [expanded, setExpanded] = useState(true);
+
+  if (conversations.length === 0) {
+    return null;
+  }
+
   return (
     <div className="conversation-group">
-      <div className="conversation-group-title">{title}</div>
-      {conversations.map((conversation) => {
-        const active = activeView === "active" && conversation.active;
-        return (
-          <button className={`conversation-item ${active ? "conversation-item-active" : ""}`} key={conversation.id} type="button">
-            <span>{conversation.title}</span>
-            <time>{conversation.timeLabel}</time>
-          </button>
-        );
-      })}
+      <button className="conversation-group-toggle" type="button" onClick={() => setExpanded((current) => !current)}>
+        <ChevronDown className={expanded ? "" : "conversation-group-collapsed"} size={13} />
+        <span>{title}</span>
+      </button>
+      {expanded
+        ? conversations.map((conversation) => {
+            const active = activeView === "active" && conversation.active;
+            return (
+              <button className={`conversation-item ${active ? "conversation-item-active" : ""}`} key={conversation.id} type="button">
+                <span className="conversation-profile-pill">{conversation.profile}</span>
+                <span className="conversation-title-text">{conversation.title}</span>
+                <time>{conversation.timeLabel}</time>
+              </button>
+            );
+          })
+        : null}
     </div>
   );
 }

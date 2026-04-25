@@ -134,7 +134,8 @@ export type ScheduledJobMutationResult =
 export type ConversationSummary = {
   id: string;
   title: string;
-  group: "today" | "yesterday";
+  group: "today" | "week" | "fortnight" | "older";
+  profile: string;
   timeLabel: string;
   active?: boolean;
 };
