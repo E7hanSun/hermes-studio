@@ -6,6 +6,7 @@ export type {
   AppInfo,
   ConversationEvent,
   ConversationSummary,
+  CreateScheduledJobInput,
   HubSkill,
   InstalledSkill,
   MemoryDocument,
@@ -14,6 +15,10 @@ export type {
   MessageInput,
   Profile,
   RuntimeStatus,
+  ScheduledJob,
+  ScheduledJobMutationResult,
+  ScheduledJobRunStatus,
+  ScheduledJobStatus,
   Settings,
   SkillInstallResult,
   SkillSearchInput,
@@ -22,5 +27,6 @@ export type {
   SkillTrustLevel,
   Space,
   SpaceMutationResult,
-  ToolCall
+  ToolCall,
+  UpdateScheduledJobInput
 } from "./contracts";

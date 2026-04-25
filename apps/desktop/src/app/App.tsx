@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import type {
   AppInfo,
+  CreateScheduledJobInput,
   HubSkill,
   InstalledSkill,
   MemoryDocument,
   MemoryDocumentKey,
   Profile,
   RuntimeStatus,
+  ScheduledJob,
   Settings,
   SkillSource,
-  Space
+  Space,
+  UpdateScheduledJobInput
 } from "@hermes-studio/bridge";
 import { AppShell } from "@/components/shell/AppShell";
 import { ActiveConversation } from "@/features/conversation/ActiveConversation";
@@ -18,6 +21,7 @@ import { emptyConversation, reduceConversationEvent, type ConversationState } fr
 import { ConversationHome } from "@/features/conversation/ConversationHome";
 import { PersonalMemoryPage } from "@/features/workbench/PersonalMemoryPage";
 import { ProfilesPage } from "@/features/workbench/ProfilesPage";
+import { ScheduledJobsPage } from "@/features/workbench/ScheduledJobsPage";
 import { SettingsPage } from "@/features/workbench/SettingsPage";
 import { SkillsPage } from "@/features/workbench/SkillsPage";
 import { SpacesPage } from "@/features/workbench/SpacesPage";
@@ -35,6 +39,8 @@ export function App() {
   const [installedSkills, setInstalledSkills] = useState<InstalledSkill[]>([]);
   const [hubSkills, setHubSkills] = useState<HubSkill[]>([]);
   const [selectedSkill, setSelectedSkill] = useState<{ kind: "installed"; skill: InstalledSkill } | { kind: "hub"; skill: HubSkill } | null>(null);
+  const [scheduledJobs, setScheduledJobs] = useState<ScheduledJob[]>([]);
+  const [selectedScheduledJob, setSelectedScheduledJob] = useState<ScheduledJob | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
@@ -48,12 +54,13 @@ export function App() {
         return;
       }
 
-      const [info, profileList, memoryList, installedSkillList, hubSkillList, spaceList, profile, space, runtime, loadedSettings] = await Promise.all([
+      const [info, profileList, memoryList, installedSkillList, hubSkillList, scheduledJobList, spaceList, profile, space, runtime, loadedSettings] = await Promise.all([
         window.hermesStudio.app.getInfo(),
         window.hermesStudio.profiles.list(),
         window.hermesStudio.memory.list(),
         window.hermesStudio.skills.listInstalled(),
         window.hermesStudio.skills.searchHub({ query: "", source: "all" }),
+        window.hermesStudio.scheduledJobs.list(),
         window.hermesStudio.spaces.list(),
         window.hermesStudio.profiles.getCurrent(),
         window.hermesStudio.spaces.getCurrent(),
@@ -67,6 +74,8 @@ export function App() {
       setInstalledSkills(installedSkillList);
       setHubSkills(hubSkillList);
       setSelectedSkill(installedSkillList[0] ? { kind: "installed", skill: installedSkillList[0] } : null);
+      setScheduledJobs(scheduledJobList);
+      setSelectedScheduledJob(scheduledJobList[0] ?? null);
       setSpaces(spaceList);
       setCurrentProfile(profile);
       setCurrentSpace(space);
@@ -148,6 +157,8 @@ export function App() {
           installedSkills,
           hubSkills,
           selectedSkill,
+          scheduledJobs,
+          selectedScheduledJob,
           activeMemoryDocument,
           onSelectMemoryDocument: setActiveMemoryDocument,
           onSaveMemoryDocument: async (key, content) => {
@@ -196,6 +207,76 @@ export function App() {
               return updatedSkill ? { kind: "installed", skill: updatedSkill } : current;
             });
           },
+          onCreateScheduledJob: async (input) => {
+            if (!window.hermesStudio) {
+              return;
+            }
+
+            const result = await window.hermesStudio.scheduledJobs.create(input);
+            setScheduledJobs(result.jobs);
+
+            if (result.selectedJob) {
+              setSelectedScheduledJob(result.selectedJob);
+            }
+          },
+          onUpdateScheduledJob: async (input) => {
+            if (!window.hermesStudio) {
+              return;
+            }
+
+            const result = await window.hermesStudio.scheduledJobs.update(input);
+            setScheduledJobs(result.jobs);
+
+            if (result.selectedJob) {
+              setSelectedScheduledJob(result.selectedJob);
+            }
+          },
+          onRefreshScheduledJobs: async () => {
+            if (!window.hermesStudio) {
+              return;
+            }
+
+            const jobs = await window.hermesStudio.scheduledJobs.list();
+            setScheduledJobs(jobs);
+            setSelectedScheduledJob((current) => jobs.find((job) => job.id === current?.id) ?? jobs[0] ?? null);
+          },
+          onPauseScheduledJob: async (jobId) => {
+            if (!window.hermesStudio) {
+              return;
+            }
+
+            const result = await window.hermesStudio.scheduledJobs.pause(jobId);
+            setScheduledJobs(result.jobs);
+            setSelectedScheduledJob(result.selectedJob ?? null);
+          },
+          onResumeScheduledJob: async (jobId) => {
+            if (!window.hermesStudio) {
+              return;
+            }
+
+            const result = await window.hermesStudio.scheduledJobs.resume(jobId);
+            setScheduledJobs(result.jobs);
+            setSelectedScheduledJob(result.selectedJob ?? null);
+          },
+          onRunScheduledJobNow: async (jobId) => {
+            if (!window.hermesStudio) {
+              return;
+            }
+
+            const result = await window.hermesStudio.scheduledJobs.runNow(jobId);
+            setScheduledJobs(result.jobs);
+            setSelectedScheduledJob(result.selectedJob ?? null);
+          },
+          onRemoveScheduledJob: async (jobId) => {
+            if (!window.hermesStudio) {
+              return;
+            }
+
+            const result = await window.hermesStudio.scheduledJobs.remove(jobId);
+            setScheduledJobs(result.jobs);
+            setSelectedScheduledJob(result.selectedJob ?? null);
+          },
+          onSelectScheduledJob: setSelectedScheduledJob,
           onSelectProfile: async (profileId) => {
             if (!window.hermesStudio) {
               return;
@@ -249,6 +330,8 @@ type ActiveViewProps = {
   installedSkills: InstalledSkill[];
   hubSkills: HubSkill[];
   selectedSkill: { kind: "installed"; skill: InstalledSkill } | { kind: "hub"; skill: HubSkill } | null;
+  scheduledJobs: ScheduledJob[];
+  selectedScheduledJob: ScheduledJob | null;
   activeMemoryDocument: MemoryDocumentKey;
   onSelectMemoryDocument: (key: MemoryDocumentKey) => void;
   onSaveMemoryDocument: (key: MemoryDocumentKey, content: string) => Promise<MemoryDocument | null>;
@@ -256,6 +339,14 @@ type ActiveViewProps = {
   onSearchHub: (query: string, source: SkillSource | "all") => Promise<void>;
   onSelectSkill: (selection: { kind: "installed"; skill: InstalledSkill } | { kind: "hub"; skill: HubSkill } | null) => void;
   onSetSkillEnabled: (skillId: string, enabled: boolean) => Promise<void>;
+  onCreateScheduledJob: (input: CreateScheduledJobInput) => Promise<void>;
+  onUpdateScheduledJob: (input: UpdateScheduledJobInput) => Promise<void>;
+  onRefreshScheduledJobs: () => Promise<void>;
+  onPauseScheduledJob: (jobId: string) => Promise<void>;
+  onResumeScheduledJob: (jobId: string) => Promise<void>;
+  onRunScheduledJobNow: (jobId: string) => Promise<void>;
+  onRemoveScheduledJob: (jobId: string) => Promise<void>;
+  onSelectScheduledJob: (job: ScheduledJob) => void;
   onSelectProfile: (profileId: string) => void;
   onSelectSpace: (spaceId: string) => void;
   onAddSpace: (path: string) => Promise<{ ok: true } | { ok: false; error: string }>;
@@ -277,6 +368,8 @@ function renderActiveView({
   installedSkills,
   hubSkills,
   selectedSkill,
+  scheduledJobs,
+  selectedScheduledJob,
   activeMemoryDocument,
   onSelectMemoryDocument,
   onSaveMemoryDocument,
@@ -284,6 +377,14 @@ function renderActiveView({
   onSearchHub,
   onSelectSkill,
   onSetSkillEnabled,
+  onCreateScheduledJob,
+  onUpdateScheduledJob,
+  onRefreshScheduledJobs,
+  onPauseScheduledJob,
+  onResumeScheduledJob,
+  onRunScheduledJobNow,
+  onRemoveScheduledJob,
+  onSelectScheduledJob,
   onSelectProfile,
   onSelectSpace,
   onAddSpace,
@@ -318,6 +419,24 @@ function renderActiveView({
         onSearchHub={onSearchHub}
         onSelectSkill={onSelectSkill}
         onSetEnabled={onSetSkillEnabled}
+      />
+    );
+  }
+
+  if (viewMode === "scheduled-jobs") {
+    return (
+      <ScheduledJobsPage
+        installedSkills={installedSkills}
+        jobs={scheduledJobs}
+        selectedJob={selectedScheduledJob}
+        onCreateJob={onCreateScheduledJob}
+        onUpdateJob={onUpdateScheduledJob}
+        onPauseJob={onPauseScheduledJob}
+        onRefreshJobs={onRefreshScheduledJobs}
+        onRemoveJob={onRemoveScheduledJob}
+        onResumeJob={onResumeScheduledJob}
+        onRunJobNow={onRunScheduledJobNow}
+        onSelectJob={onSelectScheduledJob}
       />
     );
   }

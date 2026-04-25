@@ -6,18 +6,29 @@ import {
   channels,
   type AddSpaceInput,
   type ConversationEvent,
+  type CreateScheduledJobInput,
   type HubSkill,
   type InstalledSkill,
   type MemoryDocument,
   type MemoryUpdateInput,
   type MessageInput,
+  type ScheduledJob,
   type SkillInstallResult,
   type SkillSearchInput,
-  type SpaceMutationResult
+  type SpaceMutationResult,
+  type UpdateScheduledJobInput
 } from "@hermes-studio/bridge";
 import { createAppWindow } from "./app-window";
 import { readHermesLock } from "./hermes-lock";
-import { hubSkills as initialHubSkills, installedSkills as initialInstalledSkills, memoryDocuments, profiles, settings, spaces as initialSpaces } from "./mock-data";
+import {
+  hubSkills as initialHubSkills,
+  installedSkills as initialInstalledSkills,
+  memoryDocuments,
+  profiles,
+  scheduledJobs as initialScheduledJobs,
+  settings,
+  spaces as initialSpaces
+} from "./mock-data";
 import { getRuntimeStatus } from "./runtime-status";
 
 let currentProfileId = "coder";
@@ -25,6 +36,7 @@ let currentSpaceId = "home";
 let currentSettings = settings;
 let memory = [...memoryDocuments];
 let installedSkills = [...initialInstalledSkills];
+let scheduledJobs = [...initialScheduledJobs];
 let hubSkills = initialHubSkills.map((skill) => ({
   ...skill,
   installed: initialInstalledSkills.some((installedSkill) => installedSkill.id === skill.id)
@@ -82,6 +94,125 @@ function createSpaceId(workspacePath: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(-48);
+}
+
+function createJobId(name: string): string {
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 36);
+
+  return `job-${slug || "scheduled"}-${Date.now().toString(36)}`;
+}
+
+function computeMockNextRun(schedule: string): string {
+  const now = Date.now();
+  const normalized = schedule.trim().toLowerCase();
+
+  if (/^\d+m$/.test(normalized)) {
+    return new Date(now + Number.parseInt(normalized, 10) * 60_000).toISOString();
+  }
+
+  if (/^\d+h$/.test(normalized)) {
+    return new Date(now + Number.parseInt(normalized, 10) * 3_600_000).toISOString();
+  }
+
+  if (/^every\s+\d+h$/.test(normalized)) {
+    return new Date(now + Number.parseInt(normalized.replace("every", "").trim(), 10) * 3_600_000).toISOString();
+  }
+
+  if (/^every\s+\d+m$/.test(normalized)) {
+    return new Date(now + Number.parseInt(normalized.replace("every", "").trim(), 10) * 60_000).toISOString();
+  }
+
+  return new Date(now + 24 * 3_600_000).toISOString();
+}
+
+function selectedJob(jobId?: string): ScheduledJob | undefined {
+  return jobId ? scheduledJobs.find((job) => job.id === jobId) : scheduledJobs[0];
+}
+
+function createScheduledJob(input: CreateScheduledJobInput) {
+  if (!input.name.trim()) {
+    return { ok: false as const, error: "Enter a job name.", jobs: scheduledJobs, selectedJob: selectedJob() };
+  }
+
+  if (!input.schedule.trim()) {
+    return { ok: false as const, error: "Enter a schedule such as 30m, every 2h, or 0 9 * * *.", jobs: scheduledJobs, selectedJob: selectedJob() };
+  }
+
+  if (!input.prompt.trim()) {
+    return { ok: false as const, error: "Enter a self-contained prompt for the fresh cron session.", jobs: scheduledJobs, selectedJob: selectedJob() };
+  }
+
+  const id = createJobId(input.name);
+  const job: ScheduledJob = {
+    id,
+    name: input.name.trim(),
+    prompt: input.prompt.trim(),
+    schedule: input.schedule.trim(),
+    status: "active",
+    delivery: input.delivery.trim() || "local",
+    skills: input.skills,
+    repeat: input.schedule.trim().startsWith("every") || input.schedule.trim().split(" ").length >= 5 ? "forever" : "once",
+    nextRunAt: computeMockNextRun(input.schedule),
+    lastRunStatus: "never",
+    outputPath: `~/.hermes/cron/output/${id}/`,
+    createdAt: new Date().toISOString()
+  };
+
+  scheduledJobs = [job, ...scheduledJobs];
+
+  return { ok: true as const, jobs: scheduledJobs, selectedJob: job };
+}
+
+function validateScheduledJobInput(input: CreateScheduledJobInput): string | null {
+  if (!input.name.trim()) {
+    return "Enter a job name.";
+  }
+
+  if (!input.schedule.trim()) {
+    return "Enter a schedule such as 30m, every 2h, or 0 9 * * *.";
+  }
+
+  if (!input.prompt.trim()) {
+    return "Enter a self-contained prompt for the fresh cron session.";
+  }
+
+  return null;
+}
+
+function editScheduledJob(input: UpdateScheduledJobInput) {
+  const error = validateScheduledJobInput(input);
+
+  if (error) {
+    return { ok: false as const, error, jobs: scheduledJobs, selectedJob: selectedJob(input.jobId) };
+  }
+
+  return updateScheduledJob(input.jobId, (job) => ({
+    ...job,
+    name: input.name.trim(),
+    prompt: input.prompt.trim(),
+    schedule: input.schedule.trim(),
+    delivery: input.delivery.trim() || "local",
+    skills: input.skills,
+    repeat: input.schedule.trim().startsWith("every") || input.schedule.trim().split(" ").length >= 5 ? "forever" : "once",
+    nextRunAt: job.status === "paused" ? undefined : computeMockNextRun(input.schedule)
+  }));
+}
+
+function updateScheduledJob(jobId: string, updater: (job: ScheduledJob) => ScheduledJob) {
+  const target = scheduledJobs.find((job) => job.id === jobId);
+
+  if (!target) {
+    return { ok: false as const, error: "Scheduled job not found.", jobs: scheduledJobs, selectedJob: selectedJob() };
+  }
+
+  const nextJob = updater(target);
+  scheduledJobs = scheduledJobs.map((job) => (job.id === jobId ? nextJob : job));
+
+  return { ok: true as const, jobs: scheduledJobs, selectedJob: nextJob };
 }
 
 function searchHubSkills(input: SkillSearchInput): HubSkill[] {
@@ -227,6 +358,43 @@ function registerIpcHandlers(): void {
   ipcMain.handle(channels.skillsSetEnabled, (_event, skillId: string, enabled: boolean) => {
     installedSkills = installedSkills.map((skill) => (skill.id === skillId ? { ...skill, enabled } : skill));
     return installedSkills;
+  });
+
+  ipcMain.handle(channels.scheduledJobsList, () => scheduledJobs);
+  ipcMain.handle(channels.scheduledJobsCreate, (_event, input: CreateScheduledJobInput) => createScheduledJob(input));
+  ipcMain.handle(channels.scheduledJobsUpdate, (_event, input: UpdateScheduledJobInput) => editScheduledJob(input));
+  ipcMain.handle(channels.scheduledJobsPause, (_event, jobId: string) =>
+    updateScheduledJob(jobId, (job) => ({
+      ...job,
+      status: "paused",
+      nextRunAt: undefined
+    }))
+  );
+  ipcMain.handle(channels.scheduledJobsResume, (_event, jobId: string) =>
+    updateScheduledJob(jobId, (job) => ({
+      ...job,
+      status: "active",
+      nextRunAt: computeMockNextRun(job.schedule)
+    }))
+  );
+  ipcMain.handle(channels.scheduledJobsRunNow, (_event, jobId: string) =>
+    updateScheduledJob(jobId, (job) => ({
+      ...job,
+      status: "queued",
+      lastRunStatus: "queued",
+      nextRunAt: new Date(Date.now() + 60_000).toISOString()
+    }))
+  );
+  ipcMain.handle(channels.scheduledJobsRemove, (_event, jobId: string) => {
+    const target = scheduledJobs.find((job) => job.id === jobId);
+
+    if (!target) {
+      return { ok: false, error: "Scheduled job not found.", jobs: scheduledJobs, selectedJob: selectedJob() };
+    }
+
+    scheduledJobs = scheduledJobs.filter((job) => job.id !== jobId);
+
+    return { ok: true, jobs: scheduledJobs, selectedJob: selectedJob() };
   });
 
   ipcMain.handle(channels.spacesList, () => spaces);

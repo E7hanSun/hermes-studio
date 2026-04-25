@@ -1,4 +1,4 @@
-import type { HubSkill, InstalledSkill, MemoryDocument, Profile, Settings, Space } from "@hermes-studio/bridge";
+import type { HubSkill, InstalledSkill, MemoryDocument, Profile, ScheduledJob, Settings, Space } from "@hermes-studio/bridge";
 
 export const profiles: Profile[] = [
   {
@@ -180,6 +180,53 @@ export const hubSkills: HubSkill[] = [
     installed: false,
     contentPreview:
       "---\nname: mintlify\ndescription: Work with Mintlify docs.\n---\n\n# Mintlify\n\nDiscovered through a /.well-known/skills endpoint."
+  }
+];
+
+export const scheduledJobs: ScheduledJob[] = [
+  {
+    id: "job-morning-feeds",
+    name: "Morning feeds",
+    prompt: "Check configured feeds for new AI and agent infrastructure news. Summarize anything useful for Hermes Studio planning.",
+    schedule: "0 9 * * *",
+    status: "active",
+    delivery: "local",
+    skills: ["hermes-agent", "plan"],
+    repeat: "forever",
+    nextRunAt: "2026-04-26T01:00:00.000Z",
+    lastRunAt: "2026-04-25T01:00:00.000Z",
+    lastRunStatus: "success",
+    outputPath: "~/.hermes/cron/output/job-morning-feeds/2026-04-25T01-00-00.md",
+    createdAt: "2026-04-23T08:30:00.000Z"
+  },
+  {
+    id: "job-build-check",
+    name: "Hermes Studio build check",
+    prompt: "Run pnpm typecheck and pnpm --filter @hermes-studio/desktop build. Report failures with the first actionable error.",
+    schedule: "every 2h",
+    status: "paused",
+    delivery: "origin",
+    skills: ["code-review"],
+    repeat: "forever",
+    nextRunAt: undefined,
+    lastRunAt: "2026-04-24T14:00:00.000Z",
+    lastRunStatus: "failed",
+    outputPath: "~/.hermes/cron/output/job-build-check/2026-04-24T14-00-00.md",
+    createdAt: "2026-04-24T08:15:00.000Z"
+  },
+  {
+    id: "job-release-reminder",
+    name: "Release reminder",
+    prompt: "Remind me to review pending local changes and decide whether to tag a desktop preview build.",
+    schedule: "30m",
+    status: "active",
+    delivery: "origin",
+    skills: [],
+    repeat: "once",
+    nextRunAt: "2026-04-25T10:30:00.000Z",
+    lastRunStatus: "never",
+    outputPath: "~/.hermes/cron/output/job-release-reminder/",
+    createdAt: "2026-04-25T10:00:00.000Z"
   }
 ];
 

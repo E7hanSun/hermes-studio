@@ -95,6 +95,42 @@ export type SkillInstallResult =
   | { ok: true; installedSkills: InstalledSkill[]; hubSkills: HubSkill[]; installedSkill: InstalledSkill }
   | { ok: false; error: string; installedSkills: InstalledSkill[]; hubSkills: HubSkill[] };
 
+export type ScheduledJobStatus = "active" | "paused" | "queued" | "failed";
+
+export type ScheduledJobRunStatus = "success" | "failed" | "queued" | "running" | "never";
+
+export type ScheduledJob = {
+  id: string;
+  name: string;
+  prompt: string;
+  schedule: string;
+  status: ScheduledJobStatus;
+  delivery: string;
+  skills: string[];
+  repeat: "once" | "forever" | number;
+  nextRunAt?: string;
+  lastRunAt?: string;
+  lastRunStatus: ScheduledJobRunStatus;
+  outputPath: string;
+  createdAt: string;
+};
+
+export type CreateScheduledJobInput = {
+  name: string;
+  prompt: string;
+  schedule: string;
+  delivery: string;
+  skills: string[];
+};
+
+export type UpdateScheduledJobInput = CreateScheduledJobInput & {
+  jobId: string;
+};
+
+export type ScheduledJobMutationResult =
+  | { ok: true; jobs: ScheduledJob[]; selectedJob?: ScheduledJob }
+  | { ok: false; error: string; jobs: ScheduledJob[]; selectedJob?: ScheduledJob };
+
 export type ConversationSummary = {
   id: string;
   title: string;

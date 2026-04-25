@@ -3,11 +3,13 @@ import {
   channels,
   type AddSpaceInput,
   type ConversationEvent,
+  type CreateScheduledJobInput,
   type HermesStudioApi,
   type MemoryUpdateInput,
   type MessageInput,
   type SkillSearchInput,
-  type Settings
+  type Settings,
+  type UpdateScheduledJobInput
 } from "@hermes-studio/bridge";
 
 const api: HermesStudioApi = {
@@ -37,6 +39,15 @@ const api: HermesStudioApi = {
     searchHub: (input: SkillSearchInput) => ipcRenderer.invoke(channels.skillsSearchHub, input),
     installFromHub: (skillId: string) => ipcRenderer.invoke(channels.skillsInstallFromHub, skillId),
     setEnabled: (skillId: string, enabled: boolean) => ipcRenderer.invoke(channels.skillsSetEnabled, skillId, enabled)
+  },
+  scheduledJobs: {
+    list: () => ipcRenderer.invoke(channels.scheduledJobsList),
+    create: (input: CreateScheduledJobInput) => ipcRenderer.invoke(channels.scheduledJobsCreate, input),
+    update: (input: UpdateScheduledJobInput) => ipcRenderer.invoke(channels.scheduledJobsUpdate, input),
+    pause: (jobId: string) => ipcRenderer.invoke(channels.scheduledJobsPause, jobId),
+    resume: (jobId: string) => ipcRenderer.invoke(channels.scheduledJobsResume, jobId),
+    runNow: (jobId: string) => ipcRenderer.invoke(channels.scheduledJobsRunNow, jobId),
+    remove: (jobId: string) => ipcRenderer.invoke(channels.scheduledJobsRemove, jobId)
   },
   spaces: {
     list: () => ipcRenderer.invoke(channels.spacesList),

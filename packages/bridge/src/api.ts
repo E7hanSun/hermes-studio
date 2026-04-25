@@ -2,6 +2,7 @@ import type {
   AppInfo,
   AddSpaceInput,
   ConversationEvent,
+  CreateScheduledJobInput,
   HubSkill,
   InstalledSkill,
   MemoryDocument,
@@ -9,11 +10,14 @@ import type {
   MessageInput,
   Profile,
   RuntimeStatus,
+  ScheduledJob,
+  ScheduledJobMutationResult,
   Settings,
   SkillInstallResult,
   SkillSearchInput,
   Space,
-  SpaceMutationResult
+  SpaceMutationResult,
+  UpdateScheduledJobInput
 } from "./contracts";
 
 export type Unsubscribe = () => void;
@@ -41,6 +45,15 @@ export type HermesStudioApi = {
     searchHub: (input: SkillSearchInput) => Promise<HubSkill[]>;
     installFromHub: (skillId: string) => Promise<SkillInstallResult>;
     setEnabled: (skillId: string, enabled: boolean) => Promise<InstalledSkill[]>;
+  };
+  scheduledJobs: {
+    list: () => Promise<ScheduledJob[]>;
+    create: (input: CreateScheduledJobInput) => Promise<ScheduledJobMutationResult>;
+    update: (input: UpdateScheduledJobInput) => Promise<ScheduledJobMutationResult>;
+    pause: (jobId: string) => Promise<ScheduledJobMutationResult>;
+    resume: (jobId: string) => Promise<ScheduledJobMutationResult>;
+    runNow: (jobId: string) => Promise<ScheduledJobMutationResult>;
+    remove: (jobId: string) => Promise<ScheduledJobMutationResult>;
   };
   spaces: {
     list: () => Promise<Space[]>;
