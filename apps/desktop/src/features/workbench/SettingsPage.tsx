@@ -9,6 +9,7 @@ type SettingsPageProps = {
 
 export function SettingsPage({ appInfo, runtimeStatus, settings }: SettingsPageProps) {
   const runtimeOk = runtimeStatus?.state === "idle" || runtimeStatus?.state === "running";
+  const runtimeWarning = runtimeStatus?.state === "version-mismatch";
 
   return (
     <div className="workbench-page">
@@ -29,8 +30,12 @@ export function SettingsPage({ appInfo, runtimeStatus, settings }: SettingsPageP
           <KeyValue label="Lock ref" value={appInfo?.hermesVersion.ref ?? "unknown"} />
           <KeyValue label="Commit" value={shortCommit(appInfo?.hermesVersion.commit)} />
           <KeyValue label="Status" value={runtimeStatus?.state ?? "loading"} />
-          {runtimeStatus?.state === "idle" && runtimeStatus.vendorPath ? <KeyValue label="Vendor path" value={runtimeStatus.vendorPath} /> : null}
-          {runtimeStatus?.state === "missing" ? <p className="doctor-warning">{runtimeStatus.message}</p> : null}
+          <KeyValue label="Source" value={runtimeStatus?.source ?? "loading"} />
+          <KeyValue label="Runtime version" value={runtimeStatus && "version" in runtimeStatus ? runtimeStatus.version ?? "unknown" : "unknown"} />
+          {runtimeStatus && "entryPath" in runtimeStatus && runtimeStatus.entryPath ? <KeyValue label="Entry path" value={runtimeStatus.entryPath} /> : null}
+          {runtimeStatus && "managedDir" in runtimeStatus && runtimeStatus.managedDir ? <KeyValue label="Managed dir" value={runtimeStatus.managedDir} /> : null}
+          {runtimeStatus && "externalVersion" in runtimeStatus && runtimeStatus.externalVersion ? <KeyValue label="External Hermes" value={runtimeStatus.externalVersion} /> : null}
+          {runtimeStatus?.state === "missing" || runtimeStatus?.state === "version-mismatch" ? <p className="doctor-warning">{runtimeStatus.message}</p> : null}
         </section>
 
         <section className="settings-panel">
@@ -51,7 +56,7 @@ export function SettingsPage({ appInfo, runtimeStatus, settings }: SettingsPageP
           </div>
           <div className="doctor-list">
             <DoctorItem ok={Boolean(appInfo)} label="Desktop bridge is responding" />
-            <DoctorItem ok={runtimeOk} label="Vendored Hermes runtime is available" />
+            <DoctorItem ok={runtimeOk && !runtimeWarning} label="Managed Hermes runtime matches the lock" />
             <DoctorItem ok={Boolean(settings)} label="Settings store is reachable" />
             <DoctorItem ok label="Renderer is isolated from direct Node access" />
           </div>

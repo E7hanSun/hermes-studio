@@ -140,12 +140,61 @@ export type ConversationSummary = {
   active?: boolean;
 };
 
+export type RuntimeSource = "env" | "managed";
+
 export type RuntimeStatus =
-  | { state: "missing"; message: string }
-  | { state: "idle"; vendorPath?: string }
-  | { state: "starting" }
-  | { state: "running"; pid: number }
-  | { state: "error"; message: string };
+  | {
+      state: "missing";
+      source: RuntimeSource;
+      message: string;
+      lockedRef: string;
+      lockedCommit: string;
+      entryPath?: string;
+      managedDir?: string;
+      externalVersion?: string;
+      externalEntryPath?: string;
+    }
+  | {
+      state: "version-mismatch";
+      source: RuntimeSource;
+      message: string;
+      lockedRef: string;
+      lockedCommit: string;
+      version?: string;
+      entryPath?: string;
+      managedDir?: string;
+      externalVersion?: string;
+      externalEntryPath?: string;
+    }
+  | {
+      state: "idle";
+      source: RuntimeSource;
+      lockedRef: string;
+      lockedCommit: string;
+      version?: string;
+      entryPath?: string;
+      managedDir?: string;
+      externalVersion?: string;
+      externalEntryPath?: string;
+    }
+  | {
+      state: "starting";
+      source?: RuntimeSource;
+      lockedRef?: string;
+      lockedCommit?: string;
+    }
+  | {
+      state: "running";
+      pid: number;
+      source: RuntimeSource;
+      lockedRef: string;
+      lockedCommit: string;
+      version?: string;
+      entryPath?: string;
+      externalVersion?: string;
+      externalEntryPath?: string;
+    }
+  | { state: "error"; message: string; source?: RuntimeSource };
 
 export type ModelProviderStatus = "configured" | "missing-key" | "oauth-ready" | "available" | "disabled";
 

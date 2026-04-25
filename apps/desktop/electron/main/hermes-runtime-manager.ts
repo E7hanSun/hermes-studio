@@ -6,6 +6,12 @@ import { basename, join } from "node:path";
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "node:child_process";
 import type { ConversationEvent, ConversationSummary, MessageInput, Profile, RuntimeStatus, Space } from "@hermes-studio/bridge";
 import { channels } from "@hermes-studio/bridge";
+import {
+  appendHermesProfileArgs,
+  getHermesRuntimeStatus,
+  isCommandAvailable,
+  resolveHermesRuntime
+} from "./hermes-paths";
 
 type RuntimeContext = {
   profile?: Profile;
@@ -21,9 +27,6 @@ type RunningConversation = {
   process: ChildProcessWithoutNullStreams;
 };
 
-const HERMES_BIN_ENV = "HERMES_STUDIO_HERMES_BIN";
-const HERMES_MODE_ENV = "HERMES_STUDIO_RUNTIME_MODE";
-
 export class HermesRuntimeManager {
   private readonly runningConversations = new Map<string, RunningConversation>();
 
@@ -31,22 +34,10 @@ export class HermesRuntimeManager {
     const activeProcess = [...this.runningConversations.values()].find((conversation) => conversation.process.pid);
 
     if (activeProcess?.process.pid) {
-      return {
-        state: "running",
-        pid: activeProcess.process.pid
-      };
+      return getHermesRuntimeStatus(activeProcess.process.pid);
     }
 
-    const command = this.resolveStatusCommand();
-
-    if (this.isCommandAvailable(command)) {
-      return { state: "idle", vendorPath: command };
-    }
-
-    return {
-      state: "missing",
-      message: `Hermes CLI was not found. Install Hermes or set ${HERMES_BIN_ENV} before connecting the real runtime.`
-    };
+    return getHermesRuntimeStatus();
   }
 
   sendMessage(sender: WebContents, input: MessageInput, context: RuntimeContext): { conversationId: string } {
@@ -61,19 +52,25 @@ export class HermesRuntimeManager {
       createdAt: new Date().toISOString()
     });
 
-    if (this.shouldUseMockRuntime(context)) {
-      this.scheduleMockRuntime(sender, input, conversationId);
+    const runtimeCommand = this.resolveRuntimeCommand(input, context);
+
+    if (!runtimeCommand) {
+      this.emit(sender, {
+        type: "runtime.error",
+        conversationId,
+        message: "Managed Hermes runtime is unavailable. Run scripts/vendor-hermes.sh before starting a real conversation."
+      });
       return { conversationId };
     }
 
-    this.runHermesCli(sender, input, context, conversationId, title);
+    this.runHermesCli(sender, input, context, conversationId, title, runtimeCommand);
     return { conversationId };
   }
 
   listConversations(context: RuntimeContext): ConversationSummary[] {
     const command = this.resolveSessionCommand(context);
 
-    if (!command || !this.isCommandAvailable(command.command)) {
+    if (!command || !isCommandAvailable(command.command)) {
       return [];
     }
 
@@ -94,7 +91,7 @@ export class HermesRuntimeManager {
   loadConversationEvents(conversationId: string, context: RuntimeContext): ConversationEvent[] {
     const command = this.resolveSessionCommand(context);
 
-    if (!command || !this.isCommandAvailable(command.command)) {
+    if (!command || !isCommandAvailable(command.command)) {
       return [];
     }
 
@@ -118,8 +115,14 @@ export class HermesRuntimeManager {
     }
   }
 
-  private runHermesCli(sender: WebContents, input: MessageInput, context: RuntimeContext, conversationId: string, title: string): void {
-    const runtimeCommand = this.resolveRuntimeCommand(input, context);
+  private runHermesCli(
+    sender: WebContents,
+    input: MessageInput,
+    context: RuntimeContext,
+    conversationId: string,
+    title: string,
+    runtimeCommand: RuntimeCommand
+  ): void {
     const cwd = context.space?.path && existsSync(context.space.path) ? context.space.path : process.cwd();
 
     this.emit(sender, {
@@ -202,138 +205,23 @@ export class HermesRuntimeManager {
     });
   }
 
-  private scheduleMockRuntime(sender: WebContents, input: MessageInput, conversationId: string): void {
-    const title = toTitle(input.text);
-    const toolCallId = `${conversationId}-tool-1`;
+  private resolveRuntimeCommand(input: MessageInput, context: RuntimeContext): RuntimeCommand | null {
+    const runtime = resolveHermesRuntime();
 
-    this.emitLater(sender, { type: "thinking.started", conversationId, title: "Runtime adapter" }, 260);
-    this.emitLater(
-      sender,
-      {
-        type: "thinking.updated",
-        conversationId,
-        text: "Hermes CLI is not connected yet, so Studio is using the local adapter stream while keeping the real runtime boundary in place."
-      },
-      560
-    );
-    this.emitLater(
-      sender,
-      {
-        type: "tool.started",
-        conversationId,
-        tool: {
-          id: toolCallId,
-          kind: "terminal",
-          title: "hermes runtime",
-          command: "hermes chat -q",
-          status: "running",
-          output: []
-        }
-      },
-      900
-    );
-    this.emitLater(sender, { type: "tool.output", conversationId, toolCallId, output: "runtime manager: ready" }, 1220);
-    this.emitLater(sender, { type: "tool.output", conversationId, toolCallId, output: "transport: Electron IPC -> HermesRuntimeManager" }, 1500);
-    this.emitLater(sender, { type: "tool.finished", conversationId, toolCallId, exitCode: 0 }, 1780);
-
-    [
-      "The runtime boundary is now shaped like the real Hermes integration. ",
-      "Renderer code talks to a stable adapter, while Electron main owns CLI process details. ",
-      "Once Hermes is available on PATH, this adapter can run `hermes chat -q` from the selected Space."
-    ].forEach((text, index) => {
-      this.emitLater(sender, { type: "message.delta", conversationId, text }, 2180 + index * 430);
-    });
-    this.emitLater(sender, { type: "message.completed", conversationId }, 3660);
-  }
-
-  private shouldUseMockRuntime(context: RuntimeContext): boolean {
-    if (process.env[HERMES_MODE_ENV] === "mock") {
-      return true;
-    }
-
-    const command = this.resolveRuntimeCommand(
-      {
-        text: "",
-        profileId: context.profile?.id ?? "default",
-        spaceId: context.space?.id ?? "home",
-        model: ""
-      },
-      context
-    );
-
-    return !this.isCommandAvailable(command.command);
-  }
-
-  private resolveRuntimeCommand(input: MessageInput, context: RuntimeContext): RuntimeCommand {
-    const envCommand = process.env[HERMES_BIN_ENV]?.trim();
-
-    if (envCommand) {
+    if (runtime) {
       return {
-        command: envCommand,
-        args: this.buildHermesArgs(input, context, false)
+        command: runtime.command,
+        args: [...appendHermesProfileArgs(runtime, context.profile?.id), "chat", "-q", input.text, "--source", "studio"]
       };
     }
 
-    const profileCommand = context.profile?.command?.trim();
-
-    if (profileCommand && this.isCommandAvailable(profileCommand)) {
-      return {
-        command: profileCommand,
-        args: ["chat", "-q", input.text, "--source", "studio"]
-      };
-    }
-
-    return {
-      command: "hermes",
-      args: this.buildHermesArgs(input, context, true)
-    };
+    return null;
   }
 
   private resolveSessionCommand(context: RuntimeContext): RuntimeCommand | null {
-    const envCommand = process.env[HERMES_BIN_ENV]?.trim();
+    const runtime = resolveHermesRuntime();
 
-    if (envCommand) {
-      return {
-        command: envCommand,
-        args: context.profile?.id ? ["--profile", context.profile.id] : []
-      };
-    }
-
-    const profileCommand = context.profile?.command?.trim();
-
-    if (profileCommand && this.isCommandAvailable(profileCommand)) {
-      return { command: profileCommand, args: [] };
-    }
-
-    return {
-      command: "hermes",
-      args: context.profile?.id ? ["--profile", context.profile.id] : []
-    };
-  }
-
-  private buildHermesArgs(input: MessageInput, context: RuntimeContext, includeProfile: boolean): string[] {
-    const args: string[] = [];
-
-    if (includeProfile && context.profile?.id) {
-      args.push("--profile", context.profile.id);
-    }
-
-    args.push("chat", "-q", input.text, "--source", "studio");
-    return args;
-  }
-
-  private resolveStatusCommand(): string {
-    return process.env[HERMES_BIN_ENV]?.trim() || "hermes";
-  }
-
-  private isCommandAvailable(command: string): boolean {
-    const result = spawnSync(command, ["--version"], {
-      encoding: "utf8",
-      timeout: 2500,
-      windowsHide: true
-    });
-
-    return !result.error && (result.status === 0 || result.status === null);
+    return runtime ? { command: runtime.command, args: appendHermesProfileArgs(runtime, context.profile?.id) } : null;
   }
 
   private createConversationId(): string {

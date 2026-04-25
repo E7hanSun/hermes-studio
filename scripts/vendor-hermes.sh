@@ -22,12 +22,30 @@ fi
 rm -rf "$VENDOR_DIR"
 mkdir -p "$(dirname "$VENDOR_DIR")"
 
-git clone --depth 1 --branch "$ref" "$repo" "$VENDOR_DIR"
+git clone --depth 1 --recurse-submodules --shallow-submodules --branch "$ref" "$repo" "$VENDOR_DIR"
 
 if [[ -n "$commit" ]]; then
   git -C "$VENDOR_DIR" fetch --depth 1 origin "$commit"
   git -C "$VENDOR_DIR" checkout --detach "$commit"
+  git -C "$VENDOR_DIR" submodule update --init --recursive --depth 1
 fi
 
-git -C "$VENDOR_DIR" rev-parse HEAD
+if ! command -v uv >/dev/null 2>&1; then
+  echo "uv is required to prepare the managed Hermes runtime." >&2
+  echo "Install uv first: https://docs.astral.sh/uv/getting-started/installation/" >&2
+  exit 1
+fi
 
+(
+  cd "$VENDOR_DIR"
+  uv venv venv --python 3.11
+  export VIRTUAL_ENV="$VENDOR_DIR/venv"
+  uv pip install -e ".[all,dev]"
+
+  if [[ -d "$VENDOR_DIR/tinker-atropos" ]]; then
+    uv pip install -e "./tinker-atropos"
+  fi
+)
+
+echo "Hermes vendored at $(git -C "$VENDOR_DIR" rev-parse HEAD)"
+echo "Managed Hermes CLI: $VENDOR_DIR/venv/bin/hermes"
