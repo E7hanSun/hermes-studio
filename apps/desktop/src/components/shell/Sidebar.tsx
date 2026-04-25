@@ -5,6 +5,8 @@ import {
   ChevronDown,
   CircleUserRound,
   Cpu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plus,
   Settings,
   Sparkles
@@ -12,13 +14,16 @@ import {
 import { useState } from "react";
 import type { AppInfo, ConversationSummary } from "@hermes-studio/bridge";
 import type { ViewMode } from "@/app/App";
+import hermesAvatar from "@/assets/hermes-avatar.svg";
 
 type SidebarProps = {
   appInfo: AppInfo | null;
   conversations: ConversationSummary[];
   activeView: ViewMode;
+  collapsed: boolean;
   onNewConversation: () => void;
   onNavigate: (viewMode: ViewMode) => void;
+  onToggleCollapsed: () => void;
 };
 
 const navItems = [
@@ -29,22 +34,49 @@ const navItems = [
   { label: "Profiles", icon: CircleUserRound, view: "profiles" }
 ] as const;
 
-export function Sidebar({ appInfo, conversations, activeView, onNewConversation, onNavigate }: SidebarProps) {
+export function Sidebar({ appInfo, conversations, activeView, collapsed, onNewConversation, onNavigate, onToggleCollapsed }: SidebarProps) {
   const today = conversations.filter((conversation) => conversation.group === "today");
   const week = conversations.filter((conversation) => conversation.group === "week");
   const fortnight = conversations.filter((conversation) => conversation.group === "fortnight");
   const older = conversations.filter((conversation) => conversation.group === "older");
+  const CollapseIcon = collapsed ? PanelLeftOpen : PanelLeftClose;
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${collapsed ? "sidebar-collapsed" : ""}`}>
       <div className="sidebar-scroll">
-        <button className={`sidebar-item ${activeView === "home" ? "sidebar-item-active" : "sidebar-item-plain"}`} type="button" onClick={onNewConversation}>
+        <div className="sidebar-brand-row">
+          <div className="sidebar-brand" title="Hermes Studio">
+            <img src={hermesAvatar} alt="" />
+            <span>Hermes Studio</span>
+          </div>
+          <button
+            className="sidebar-collapse-button"
+            type="button"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            onClick={onToggleCollapsed}
+          >
+            <CollapseIcon size={14} />
+          </button>
+        </div>
+
+        <button
+          className={`sidebar-item sidebar-new-conversation ${activeView === "home" ? "sidebar-item-active" : "sidebar-item-plain"}`}
+          type="button"
+          title="New Conversation"
+          onClick={onNewConversation}
+        >
           <Plus size={16} />
           <span>New Conversation</span>
         </button>
 
         <nav className="sidebar-nav" aria-label="Main navigation">
-          <button className={`sidebar-item sidebar-item-plain ${activeView === "memory" ? "sidebar-item-active" : ""}`} type="button" onClick={() => onNavigate("memory")}>
+          <button
+            className={`sidebar-item sidebar-item-plain ${activeView === "memory" ? "sidebar-item-active" : ""}`}
+            type="button"
+            title="Personal Memory"
+            onClick={() => onNavigate("memory")}
+          >
             <BookOpen size={14} />
             <span>Personal Memory</span>
           </button>
@@ -56,6 +88,7 @@ export function Sidebar({ appInfo, conversations, activeView, onNewConversation,
                 className={`sidebar-item sidebar-item-plain ${activeView === item.view ? "sidebar-item-active" : ""}`}
                 type="button"
                 key={item.label}
+                title={item.label}
                 onClick={() => onNavigate(item.view)}
               >
                 <Icon size={14} />
@@ -74,7 +107,12 @@ export function Sidebar({ appInfo, conversations, activeView, onNewConversation,
       </div>
 
       <div className="sidebar-footer">
-        <button className={`sidebar-item sidebar-item-plain ${activeView === "settings" ? "sidebar-item-active" : ""}`} type="button" onClick={() => onNavigate("settings")}>
+        <button
+          className={`sidebar-item sidebar-item-plain ${activeView === "settings" ? "sidebar-item-active" : ""}`}
+          type="button"
+          title="Settings"
+          onClick={() => onNavigate("settings")}
+        >
           <Settings size={14} />
           <span>Settings</span>
         </button>

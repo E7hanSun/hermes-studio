@@ -81,6 +81,16 @@ button {
   background: var(--sidebar-bg);
   padding: 8px 10px 12px;
   backdrop-filter: blur(10px);
+  transition:
+    width 160ms ease,
+    flex-basis 160ms ease,
+    padding 160ms ease;
+}
+
+.sidebar-collapsed {
+  width: 60px;
+  flex-basis: 60px;
+  padding: 8px 8px 12px;
 }
 
 .sidebar-scroll {
@@ -90,6 +100,62 @@ button {
   flex: 1;
   flex-direction: column;
   gap: 14px;
+}
+
+.sidebar-brand-row {
+  display: flex;
+  width: 100%;
+  min-height: 34px;
+  align-items: center;
+  gap: 6px;
+}
+
+.sidebar-brand {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 9px;
+  border-radius: 7px;
+  color: #26313d;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.sidebar-brand img {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 7px;
+  object-fit: cover;
+}
+
+.sidebar-brand span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-collapse-button {
+  display: flex;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(150, 160, 170, 0.42);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.58);
+  color: #6f7f95;
+  cursor: default;
+  padding: 0;
+}
+
+.sidebar-collapse-button:hover {
+  background: rgba(230, 230, 230, 0.62);
 }
 
 .sidebar-item {
@@ -114,7 +180,7 @@ button {
   stroke-width: 2;
 }
 
-.sidebar > .sidebar-scroll > .sidebar-item:first-child {
+.sidebar-new-conversation {
   height: 38px;
   border-radius: 7px;
   background: var(--sidebar-active);
@@ -122,7 +188,47 @@ button {
   font-weight: 700;
 }
 
-.sidebar > .sidebar-scroll > .sidebar-item:first-child svg {
+.sidebar-collapsed .sidebar-scroll {
+  gap: 12px;
+}
+
+.sidebar-collapsed .sidebar-brand-row {
+  min-height: 58px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.sidebar-collapsed .sidebar-brand {
+  flex: 0 0 auto;
+}
+
+.sidebar-collapsed .sidebar-brand span,
+.sidebar-collapsed .sidebar-item span,
+.sidebar-collapsed .version-line {
+  display: none;
+}
+
+.sidebar-collapsed .sidebar-collapse-button {
+  margin-left: 0;
+}
+
+.sidebar-collapsed .sidebar-item {
+  height: 38px;
+  justify-content: center;
+  gap: 0;
+  padding: 0;
+}
+
+.sidebar-collapsed .sidebar-nav {
+  align-items: center;
+}
+
+.sidebar-collapsed .conversation-list {
+  display: none;
+}
+
+.sidebar-new-conversation svg {
   color: #4d5968;
 }
 
@@ -2841,6 +2947,11 @@ button {
   .sidebar {
     width: 272px;
     flex-basis: 272px;
+  }
+
+  .sidebar-collapsed {
+    width: 60px;
+    flex-basis: 60px;
   }
 
   .home-view,
