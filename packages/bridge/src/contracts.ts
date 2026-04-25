@@ -50,6 +50,51 @@ export type MemoryUpdateInput = {
   content: string;
 };
 
+export type SkillSource = "built-in" | "optional" | "official" | "skills-sh" | "well-known" | "github" | "community";
+
+export type SkillTrustLevel = "builtin" | "official" | "trusted" | "community";
+
+export type SkillSecurityStatus = "trusted" | "passed" | "warning" | "blocked";
+
+export type InstalledSkill = {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  source: SkillSource;
+  trustLevel: SkillTrustLevel;
+  enabled: boolean;
+  slashCommand: string;
+  path: string;
+  tags: string[];
+  updatedAt: string;
+  contentPreview: string;
+};
+
+export type HubSkill = {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  source: SkillSource;
+  trustLevel: SkillTrustLevel;
+  securityStatus: SkillSecurityStatus;
+  installCommand: string;
+  weeklyInstalls?: number;
+  tags: string[];
+  installed: boolean;
+  contentPreview: string;
+};
+
+export type SkillSearchInput = {
+  query: string;
+  source?: SkillSource | "all";
+};
+
+export type SkillInstallResult =
+  | { ok: true; installedSkills: InstalledSkill[]; hubSkills: HubSkill[]; installedSkill: InstalledSkill }
+  | { ok: false; error: string; installedSkills: InstalledSkill[]; hubSkills: HubSkill[] };
+
 export type ConversationSummary = {
   id: string;
   title: string;

@@ -6,20 +6,29 @@ import {
   channels,
   type AddSpaceInput,
   type ConversationEvent,
+  type HubSkill,
+  type InstalledSkill,
   type MemoryDocument,
   type MemoryUpdateInput,
   type MessageInput,
+  type SkillInstallResult,
+  type SkillSearchInput,
   type SpaceMutationResult
 } from "@hermes-studio/bridge";
 import { createAppWindow } from "./app-window";
 import { readHermesLock } from "./hermes-lock";
-import { memoryDocuments, profiles, settings, spaces as initialSpaces } from "./mock-data";
+import { hubSkills as initialHubSkills, installedSkills as initialInstalledSkills, memoryDocuments, profiles, settings, spaces as initialSpaces } from "./mock-data";
 import { getRuntimeStatus } from "./runtime-status";
 
 let currentProfileId = "coder";
 let currentSpaceId = "home";
 let currentSettings = settings;
 let memory = [...memoryDocuments];
+let installedSkills = [...initialInstalledSkills];
+let hubSkills = initialHubSkills.map((skill) => ({
+  ...skill,
+  installed: initialInstalledSkills.some((installedSkill) => installedSkill.id === skill.id)
+}));
 let spaces = [...initialSpaces];
 let conversationCounter = 0;
 
@@ -73,6 +82,60 @@ function createSpaceId(workspacePath: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(-48);
+}
+
+function searchHubSkills(input: SkillSearchInput): HubSkill[] {
+  const query = input.query.trim().toLowerCase();
+
+  return hubSkills.filter((skill) => {
+    const matchesSource = !input.source || input.source === "all" || skill.source === input.source;
+    const matchesQuery =
+      !query ||
+      skill.name.toLowerCase().includes(query) ||
+      skill.description.toLowerCase().includes(query) ||
+      skill.category.toLowerCase().includes(query) ||
+      skill.tags.some((tag) => tag.toLowerCase().includes(query));
+
+    return matchesSource && matchesQuery;
+  });
+}
+
+function installHubSkill(skillId: string): SkillInstallResult {
+  const target = hubSkills.find((skill) => skill.id === skillId);
+
+  if (!target) {
+    return { ok: false, error: "Skill not found in the hub.", installedSkills, hubSkills };
+  }
+
+  if (target.securityStatus === "blocked") {
+    return { ok: false, error: "This skill is blocked by the security scanner.", installedSkills, hubSkills };
+  }
+
+  const existingSkill = installedSkills.find((skill) => skill.id === target.id);
+
+  if (existingSkill) {
+    return { ok: true, installedSkills, hubSkills, installedSkill: existingSkill };
+  }
+
+  const installedSkill: InstalledSkill = {
+    id: target.id,
+    name: target.name,
+    description: target.description,
+    category: target.category,
+    source: target.source,
+    trustLevel: target.trustLevel,
+    enabled: true,
+    slashCommand: `/${target.name}`,
+    path: `~/.hermes/skills/${target.category.toLowerCase().replace(/[^a-z0-9]+/g, "-")}/${target.name}/SKILL.md`,
+    tags: target.tags,
+    updatedAt: new Date().toISOString(),
+    contentPreview: target.contentPreview
+  };
+
+  installedSkills = [...installedSkills, installedSkill];
+  hubSkills = hubSkills.map((skill) => (skill.id === target.id ? { ...skill, installed: true } : skill));
+
+  return { ok: true, installedSkills, hubSkills, installedSkill };
 }
 
 function sendRuntimeEvent(sender: Electron.WebContents, event: ConversationEvent, delay: number): void {
@@ -157,6 +220,14 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle(channels.memoryList, () => memory);
   ipcMain.handle(channels.memoryUpdate, (_event, input: MemoryUpdateInput) => updateMemoryDocument(input));
+
+  ipcMain.handle(channels.skillsListInstalled, () => installedSkills);
+  ipcMain.handle(channels.skillsSearchHub, (_event, input: SkillSearchInput) => searchHubSkills(input));
+  ipcMain.handle(channels.skillsInstallFromHub, (_event, skillId: string) => installHubSkill(skillId));
+  ipcMain.handle(channels.skillsSetEnabled, (_event, skillId: string, enabled: boolean) => {
+    installedSkills = installedSkills.map((skill) => (skill.id === skillId ? { ...skill, enabled } : skill));
+    return installedSkills;
+  });
 
   ipcMain.handle(channels.spacesList, () => spaces);
   ipcMain.handle(channels.spacesGetCurrent, () => getCurrentSpace());

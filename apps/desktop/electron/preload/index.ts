@@ -6,6 +6,7 @@ import {
   type HermesStudioApi,
   type MemoryUpdateInput,
   type MessageInput,
+  type SkillSearchInput,
   type Settings
 } from "@hermes-studio/bridge";
 
@@ -30,6 +31,12 @@ const api: HermesStudioApi = {
   memory: {
     list: () => ipcRenderer.invoke(channels.memoryList),
     update: (input: MemoryUpdateInput) => ipcRenderer.invoke(channels.memoryUpdate, input)
+  },
+  skills: {
+    listInstalled: () => ipcRenderer.invoke(channels.skillsListInstalled),
+    searchHub: (input: SkillSearchInput) => ipcRenderer.invoke(channels.skillsSearchHub, input),
+    installFromHub: (skillId: string) => ipcRenderer.invoke(channels.skillsInstallFromHub, skillId),
+    setEnabled: (skillId: string, enabled: boolean) => ipcRenderer.invoke(channels.skillsSetEnabled, skillId, enabled)
   },
   spaces: {
     list: () => ipcRenderer.invoke(channels.spacesList),

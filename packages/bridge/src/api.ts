@@ -2,12 +2,16 @@ import type {
   AppInfo,
   AddSpaceInput,
   ConversationEvent,
+  HubSkill,
+  InstalledSkill,
   MemoryDocument,
   MemoryUpdateInput,
   MessageInput,
   Profile,
   RuntimeStatus,
   Settings,
+  SkillInstallResult,
+  SkillSearchInput,
   Space,
   SpaceMutationResult
 } from "./contracts";
@@ -31,6 +35,12 @@ export type HermesStudioApi = {
   memory: {
     list: () => Promise<MemoryDocument[]>;
     update: (input: MemoryUpdateInput) => Promise<MemoryDocument>;
+  };
+  skills: {
+    listInstalled: () => Promise<InstalledSkill[]>;
+    searchHub: (input: SkillSearchInput) => Promise<HubSkill[]>;
+    installFromHub: (skillId: string) => Promise<SkillInstallResult>;
+    setEnabled: (skillId: string, enabled: boolean) => Promise<InstalledSkill[]>;
   };
   spaces: {
     list: () => Promise<Space[]>;

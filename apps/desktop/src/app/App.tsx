@@ -1,5 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AppInfo, MemoryDocument, MemoryDocumentKey, Profile, RuntimeStatus, Settings, Space } from "@hermes-studio/bridge";
+import type {
+  AppInfo,
+  HubSkill,
+  InstalledSkill,
+  MemoryDocument,
+  MemoryDocumentKey,
+  Profile,
+  RuntimeStatus,
+  Settings,
+  SkillSource,
+  Space
+} from "@hermes-studio/bridge";
 import { AppShell } from "@/components/shell/AppShell";
 import { ActiveConversation } from "@/features/conversation/ActiveConversation";
 import type { ComposerProps } from "@/components/composer/Composer";
@@ -8,6 +19,7 @@ import { ConversationHome } from "@/features/conversation/ConversationHome";
 import { PersonalMemoryPage } from "@/features/workbench/PersonalMemoryPage";
 import { ProfilesPage } from "@/features/workbench/ProfilesPage";
 import { SettingsPage } from "@/features/workbench/SettingsPage";
+import { SkillsPage } from "@/features/workbench/SkillsPage";
 import { SpacesPage } from "@/features/workbench/SpacesPage";
 import { mockConversations } from "@/mocks/conversations";
 
@@ -20,6 +32,9 @@ export function App() {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [memoryDocuments, setMemoryDocuments] = useState<MemoryDocument[]>([]);
   const [activeMemoryDocument, setActiveMemoryDocument] = useState<MemoryDocumentKey>("notes");
+  const [installedSkills, setInstalledSkills] = useState<InstalledSkill[]>([]);
+  const [hubSkills, setHubSkills] = useState<HubSkill[]>([]);
+  const [selectedSkill, setSelectedSkill] = useState<{ kind: "installed"; skill: InstalledSkill } | { kind: "hub"; skill: HubSkill } | null>(null);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
@@ -33,10 +48,12 @@ export function App() {
         return;
       }
 
-      const [info, profileList, memoryList, spaceList, profile, space, runtime, loadedSettings] = await Promise.all([
+      const [info, profileList, memoryList, installedSkillList, hubSkillList, spaceList, profile, space, runtime, loadedSettings] = await Promise.all([
         window.hermesStudio.app.getInfo(),
         window.hermesStudio.profiles.list(),
         window.hermesStudio.memory.list(),
+        window.hermesStudio.skills.listInstalled(),
+        window.hermesStudio.skills.searchHub({ query: "", source: "all" }),
         window.hermesStudio.spaces.list(),
         window.hermesStudio.profiles.getCurrent(),
         window.hermesStudio.spaces.getCurrent(),
@@ -47,6 +64,9 @@ export function App() {
       setAppInfo(info);
       setProfiles(profileList);
       setMemoryDocuments(memoryList);
+      setInstalledSkills(installedSkillList);
+      setHubSkills(hubSkillList);
+      setSelectedSkill(installedSkillList[0] ? { kind: "installed", skill: installedSkillList[0] } : null);
       setSpaces(spaceList);
       setCurrentProfile(profile);
       setCurrentSpace(space);
@@ -125,6 +145,9 @@ export function App() {
           runtimeStatus,
           settings,
           memoryDocuments,
+          installedSkills,
+          hubSkills,
+          selectedSkill,
           activeMemoryDocument,
           onSelectMemoryDocument: setActiveMemoryDocument,
           onSaveMemoryDocument: async (key, content) => {
@@ -135,6 +158,43 @@ export function App() {
             const updatedDocument = await window.hermesStudio.memory.update({ key, content });
             setMemoryDocuments((current) => current.map((document) => (document.key === updatedDocument.key ? updatedDocument : document)));
             return updatedDocument;
+          },
+          onInstallHubSkill: async (skillId) => {
+            if (!window.hermesStudio) {
+              return;
+            }
+
+            const result = await window.hermesStudio.skills.installFromHub(skillId);
+            setInstalledSkills(result.installedSkills);
+            setHubSkills(result.hubSkills);
+
+            if (result.ok) {
+              setSelectedSkill({ kind: "installed", skill: result.installedSkill });
+            }
+          },
+          onSearchHub: async (query, source) => {
+            if (!window.hermesStudio) {
+              return;
+            }
+
+            setHubSkills(await window.hermesStudio.skills.searchHub({ query, source }));
+          },
+          onSelectSkill: setSelectedSkill,
+          onSetSkillEnabled: async (skillId, enabled) => {
+            if (!window.hermesStudio) {
+              return;
+            }
+
+            const nextInstalledSkills = await window.hermesStudio.skills.setEnabled(skillId, enabled);
+            setInstalledSkills(nextInstalledSkills);
+            setSelectedSkill((current) => {
+              if (current?.kind !== "installed" || current.skill.id !== skillId) {
+                return current;
+              }
+
+              const updatedSkill = nextInstalledSkills.find((skill) => skill.id === skillId);
+              return updatedSkill ? { kind: "installed", skill: updatedSkill } : current;
+            });
           },
           onSelectProfile: async (profileId) => {
             if (!window.hermesStudio) {
@@ -186,9 +246,16 @@ type ActiveViewProps = {
   runtimeStatus: RuntimeStatus | null;
   settings: Settings | null;
   memoryDocuments: MemoryDocument[];
+  installedSkills: InstalledSkill[];
+  hubSkills: HubSkill[];
+  selectedSkill: { kind: "installed"; skill: InstalledSkill } | { kind: "hub"; skill: HubSkill } | null;
   activeMemoryDocument: MemoryDocumentKey;
   onSelectMemoryDocument: (key: MemoryDocumentKey) => void;
   onSaveMemoryDocument: (key: MemoryDocumentKey, content: string) => Promise<MemoryDocument | null>;
+  onInstallHubSkill: (skillId: string) => Promise<void>;
+  onSearchHub: (query: string, source: SkillSource | "all") => Promise<void>;
+  onSelectSkill: (selection: { kind: "installed"; skill: InstalledSkill } | { kind: "hub"; skill: HubSkill } | null) => void;
+  onSetSkillEnabled: (skillId: string, enabled: boolean) => Promise<void>;
   onSelectProfile: (profileId: string) => void;
   onSelectSpace: (spaceId: string) => void;
   onAddSpace: (path: string) => Promise<{ ok: true } | { ok: false; error: string }>;
@@ -207,9 +274,16 @@ function renderActiveView({
   runtimeStatus,
   settings,
   memoryDocuments,
+  installedSkills,
+  hubSkills,
+  selectedSkill,
   activeMemoryDocument,
   onSelectMemoryDocument,
   onSaveMemoryDocument,
+  onInstallHubSkill,
+  onSearchHub,
+  onSelectSkill,
+  onSetSkillEnabled,
   onSelectProfile,
   onSelectSpace,
   onAddSpace,
@@ -230,6 +304,20 @@ function renderActiveView({
         documents={memoryDocuments}
         onSaveDocument={onSaveMemoryDocument}
         onSelectDocument={onSelectMemoryDocument}
+      />
+    );
+  }
+
+  if (viewMode === "skills") {
+    return (
+      <SkillsPage
+        hubSkills={hubSkills}
+        installedSkills={installedSkills}
+        selectedSkill={selectedSkill}
+        onInstallHubSkill={onInstallHubSkill}
+        onSearchHub={onSearchHub}
+        onSelectSkill={onSelectSkill}
+        onSetEnabled={onSetSkillEnabled}
       />
     );
   }
